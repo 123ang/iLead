@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "module": "ESNext",
+    "target": "ES2022"
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

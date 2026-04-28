@@ -1,0 +1,14 @@
+import { Router } from 'express';
+import { prisma } from '../config/db.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
+import { campaignCreateSchema } from '../validators/campaign.schema.js';
+import { campaignRoi } from '../services/metrics.service.js';
+import { audit } from '../utils/audit.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+const router = Router(); router.use(requireAuth);
+router.get('/', asyncHandler(async (req,res)=>{ const page=Number(req.query.page||1), pageSize=Number(req.query.pageSize||50); const where={deletedAt:null}; const [items,total]=await Promise.all([prisma.campaign.findMany({where,skip:(page-1)*pageSize,take:pageSize,include:{countries:{include:{country:true}},faculties:{include:{faculty:true}},programmes:{include:{programme:true}},costs:true},orderBy:{startDate:'desc'}}), prisma.campaign.count({where})]); res.json({items,total,page,pageSize}); }));
+router.post('/', asyncHandler(async (req,res)=>{ const data=campaignCreateSchema.parse(req.body); const created=await prisma.campaign.create({ data:{ name:data.name,campaignType:data.campaignType,startDate:data.startDate,endDate:data.endDate,objective:data.objective,status:data.status,approvedBudgetMyr:data.approvedBudgetMyr||0,countries:{create:(data.countryIds||[]).map(countryId=>({countryId}))},faculties:{create:(data.facultyIds||[]).map(facultyId=>({facultyId}))},programmes:{create:(data.programmeIds||[]).map(programmeId=>({programmeId}))} } }); await audit(req,'CREATE','Campaign',created.id,null,created); res.status(201).json(created); }));
+router.get('/:id', asyncHandler(async (req,res)=>res.json(await prisma.campaign.findUnique({where:{id:req.params.id},include:{countries:{include:{country:true}},faculties:{include:{faculty:true}},programmes:{include:{programme:true}},costs:true,leadTouches:true}}))));
+router.get('/:id/roi', asyncHandler(async (req,res)=>res.json(await campaignRoi(req.params.id))));
+router.delete('/:id', asyncHandler(async (req,res)=>{ const c=await prisma.campaign.update({where:{id:req.params.id},data:{deletedAt:new Date()}}); await audit(req,'SOFT_DELETE','Campaign',c.id,c,null); res.json({ok:true}); }));
+export default router;

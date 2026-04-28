@@ -1,0 +1,457 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGEMENT
+  CIAC_ADMIN
+  FACULTY_DEAN
+  PROGRAMME_COORDINATOR
+  STAFF
+  REGISTRAR
+  FINANCE
+}
+
+enum CampaignType {
+  EDUCATION_FAIR
+  UNIVERSITY_VISIT
+  ROADSHOW
+  ACADEMIC_COLLABORATION
+  CONFERENCE
+  AGENT_EVENT
+  DIGITAL_CAMPAIGN
+  CIAC_UMBRELLA
+  OTHER
+}
+
+enum CampaignStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum StudyLevel {
+  FOUNDATION
+  BACHELOR
+  MASTER
+  PHD
+  EXECUTIVE
+  OTHER
+}
+
+enum LeadQuality {
+  HOT
+  WARM
+  COLD
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  APPLIED
+  OFFERED
+  ENROLLED
+  LOST
+  DUPLICATE
+}
+
+enum FollowUpType {
+  EMAIL
+  WHATSAPP
+  CALL
+  MEETING
+  BROCHURE_SENT
+  APPLICATION_GUIDE_SENT
+  OTHER
+}
+
+enum ApplicationStatus {
+  APPLIED
+  UNDER_REVIEW
+  OFFERED
+  REJECTED
+  ACCEPTED
+  ENROLLED
+  WITHDRAWN
+}
+
+enum CostType {
+  TRAVEL
+  ACCOMMODATION
+  BOOTH
+  MARKETING
+  ALLOWANCE
+  AGENCY
+  DIGITAL
+  OTHER
+}
+
+enum LeadSource {
+  EVENT_FORM
+  CSV_UPLOAD
+  QR_CODE
+  WEBSITE
+  AGENT
+  REFERRAL
+  OTHER
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  name               String
+  email              String         @unique
+  passwordHash       String?
+  role               Role
+  facultyId          String?
+  faculty            Faculty?       @relation(fields: [facultyId], references: [id])
+  isActive           Boolean        @default(true)
+  mustChangePassword Boolean        @default(false)
+  lastLoginAt        DateTime?
+  deletedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  assignedLeads      Lead[]
+  followUps          FollowUp[]
+  refreshTokens      RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Country {
+  id                String            @id @default(cuid())
+  name              String            @unique
+  iso2              String?           @unique
+  iso3              String?           @unique
+  region            String?
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  campaignCountries CampaignCountry[]
+  leads             Lead[]
+  applications      Application[]
+}
+
+model Faculty {
+  id                String            @id @default(cuid())
+  name              String
+  code              String            @unique
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  users             User[]
+  campaignFaculties CampaignFaculty[]
+  programmes        Programme[]
+}
+
+model Programme {
+  id                 String              @id @default(cuid())
+  name               String
+  code               String?             @unique
+  facultyId          String?
+  faculty            Faculty?            @relation(fields: [facultyId], references: [id])
+  studyLevel         StudyLevel
+  durationYears      Decimal             @default(1)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  campaignProgrammes CampaignProgramme[]
+  tuitionFees        TuitionFee[]
+  leads              Lead[]
+  applications       Application[]
+}
+
+model Currency {
+  id            String         @id @default(cuid())
+  code          String         @unique
+  name          String
+  symbol        String?
+  createdAt     DateTime       @default(now())
+  fxRates       FXRate[]
+  campaignCosts CampaignCost[]
+}
+
+model FXRate {
+  id          String   @id @default(cuid())
+  currencyId  String
+  currency    Currency @relation(fields: [currencyId], references: [id])
+  rateToMyr   Decimal
+  rateDate    DateTime
+  source      String?
+  createdAt   DateTime @default(now())
+
+  @@unique([currencyId, rateDate])
+}
+
+model Campaign {
+  id              String              @id @default(cuid())
+  name            String
+  campaignType    CampaignType
+  startDate       DateTime
+  endDate         DateTime
+  objective       String?
+  status          CampaignStatus      @default(PLANNED)
+  approvedBudgetMyr Decimal           @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deletedAt       DateTime?
+  countries       CampaignCountry[]
+  faculties       CampaignFaculty[]
+  programmes      CampaignProgramme[]
+  leadTouches     LeadCampaignTouch[]
+  costs           CampaignCost[]
+  metrics         CampaignMetric[]
+  mousMoas        MouMoa[]
+  mobilityRecords MobilityRecord[]
+  academicPeers   AcademicPeer[]
+}
+
+model CampaignCountry {
+  campaignId String
+  countryId  String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  country    Country  @relation(fields: [countryId], references: [id])
+
+  @@id([campaignId, countryId])
+}
+
+model CampaignFaculty {
+  campaignId String
+  facultyId  String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  faculty    Faculty  @relation(fields: [facultyId], references: [id])
+
+  @@id([campaignId, facultyId])
+}
+
+model CampaignProgramme {
+  campaignId  String
+  programmeId String
+  campaign    Campaign  @relation(fields: [campaignId], references: [id])
+  programme   Programme @relation(fields: [programmeId], references: [id])
+
+  @@id([campaignId, programmeId])
+}
+
+model Lead {
+  id                    String              @id @default(cuid())
+  fullName              String
+  email                 String?
+  phone                 String?
+  passportNumber        String?
+  externalLeadId        String?
+  countryId             String?
+  country               Country?            @relation(fields: [countryId], references: [id])
+  interestedProgrammeId String?
+  interestedProgramme   Programme?          @relation(fields: [interestedProgrammeId], references: [id])
+  studyLevel            StudyLevel?
+  leadQuality           LeadQuality          @default(WARM)
+  status                LeadStatus           @default(NEW)
+  assignedStaffId       String?
+  assignedStaff         User?                @relation(fields: [assignedStaffId], references: [id])
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  deletedAt             DateTime?
+  touches               LeadCampaignTouch[]
+  followUps             FollowUp[]
+  applications          Application[]
+}
+
+model LeadCampaignTouch {
+  id         String     @id @default(cuid())
+  leadId     String
+  lead       Lead       @relation(fields: [leadId], references: [id])
+  campaignId String
+  campaign   Campaign   @relation(fields: [campaignId], references: [id])
+  source     LeadSource @default(EVENT_FORM)
+  capturedAt DateTime   @default(now())
+  sourceNote String?
+
+  @@unique([leadId, campaignId])
+  @@index([campaignId])
+  @@index([leadId])
+}
+
+model LeadMergeCandidate {
+  id         String   @id @default(cuid())
+  leadAId    String
+  leadBId    String
+  confidence Decimal
+  reason     String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+}
+
+model FollowUp {
+  id               String       @id @default(cuid())
+  leadId           String
+  lead             Lead         @relation(fields: [leadId], references: [id])
+  staffId          String
+  staff            User         @relation(fields: [staffId], references: [id])
+  followUpType     FollowUpType
+  followUpDate     DateTime     @default(now())
+  nextFollowUpDate DateTime?
+  outcome          String?
+  notes            String?
+  createdAt        DateTime     @default(now())
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  leadId            String?
+  lead              Lead?             @relation(fields: [leadId], references: [id])
+  applicantName     String
+  email             String?
+  phone             String?
+  passportNumber    String?
+  countryId         String?
+  country           Country?          @relation(fields: [countryId], references: [id])
+  programmeId       String?
+  programme         Programme?        @relation(fields: [programmeId], references: [id])
+  studyLevel        StudyLevel?
+  applicationStatus ApplicationStatus @default(APPLIED)
+  applicationDate   DateTime?
+  offerDate         DateTime?
+  enrolmentDate     DateTime?
+  sourceCampaign    String?
+  scholarshipMyr    Decimal           @default(0)
+  tuitionRevenueMyr Decimal           @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+}
+
+model CampaignCost {
+  id             String   @id @default(cuid())
+  campaignId     String
+  campaign       Campaign @relation(fields: [campaignId], references: [id])
+  currencyId     String
+  currency       Currency @relation(fields: [currencyId], references: [id])
+  costType       CostType
+  description    String?
+  amountOriginal Decimal  @default(0)
+  fxRateToMyr    Decimal  @default(1)
+  amountMyr      Decimal  @default(0)
+  costDate       DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
+
+model TuitionFee {
+  id           String     @id @default(cuid())
+  programmeId  String
+  programme    Programme  @relation(fields: [programmeId], references: [id])
+  studyLevel   StudyLevel
+  amountMyr    Decimal
+  academicYear String
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+}
+
+model Scholarship {
+  id              String   @id @default(cuid())
+  name            String
+  discountPercent Decimal?
+  amountMyr       Decimal?
+  isActive        Boolean  @default(true)
+}
+
+model Sponsor {
+  id       String  @id @default(cuid())
+  name     String
+  isActive Boolean @default(true)
+}
+
+model MouMoa {
+  id          String    @id @default(cuid())
+  campaignId  String?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+  institution String
+  country     String
+  type        String
+  status      String
+  signedDate  DateTime?
+}
+
+model MobilityRecord {
+  id           String    @id @default(cuid())
+  campaignId   String?
+  campaign     Campaign? @relation(fields: [campaignId], references: [id])
+  institution  String
+  country      String
+  studentCount Int       @default(0)
+  mobilityType String
+}
+
+model AcademicPeer {
+  id          String    @id @default(cuid())
+  campaignId  String?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+  name        String
+  institution String
+  country     String
+  email       String?
+}
+
+model CampaignMetric {
+  id                String   @id @default(cuid())
+  campaignId        String
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  metricDate        DateTime
+  totalLeads        Int      @default(0)
+  totalApplications Int      @default(0)
+  totalOffers       Int      @default(0)
+  totalEnrolments   Int      @default(0)
+  actualSpendMyr    Decimal  @default(0)
+  tuitionRevenueMyr Decimal  @default(0)
+  netRevenueMyr     Decimal  @default(0)
+  roiRatio          Decimal  @default(0)
+  roiPercentage     Decimal  @default(0)
+  createdAt         DateTime @default(now())
+
+  @@unique([campaignId, metricDate])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String?
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  userAgent String?
+  sessionId String?
+  createdAt DateTime @default(now())
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
