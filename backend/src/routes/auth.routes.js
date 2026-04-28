@@ -1,10 +1,25 @@
-import { Router } from 'express';
-import { login, refresh } from '../services/auth.service.js';
-import { requireAuth } from '../middleware/auth.middleware.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { Router } from "express";
+import * as authCtrl from "../controllers/auth.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
+import { assertTrustedOrigin } from "../middleware/trusted-origin.middleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+
 const router = Router();
-router.post('/login', asyncHandler(async (req,res)=>{ const { email, password } = req.body; const result = await login(email, password); res.cookie('refreshToken', result.refreshToken, { httpOnly:true, sameSite:'lax', secure:false }); res.json(result); }));
-router.post('/refresh', asyncHandler(async (req,res)=>res.json(refresh(req.cookies.refreshToken || req.body.refreshToken))));
-router.post('/logout', (_req,res)=>{ res.clearCookie('refreshToken'); res.json({ ok:true }); });
-router.get('/me', requireAuth, (req,res)=>res.json({ user:req.user }));
+
+router.post("/login", assertTrustedOrigin, asyncHandler(authCtrl.login));
+router.post("/refresh", assertTrustedOrigin, asyncHandler(authCtrl.refresh));
+router.post("/logout", assertTrustedOrigin, asyncHandler(authCtrl.logout));
+router.get("/me", requireAuth, asyncHandler(authCtrl.me));
+router.post(
+  "/forgot-password",
+  assertTrustedOrigin,
+  asyncHandler(authCtrl.forgotPassword),
+);
+router.post(
+  "/reset-password",
+  assertTrustedOrigin,
+  asyncHandler(authCtrl.resetPassword),
+);
+router.post("/change-password", requireAuth, asyncHandler(authCtrl.changePassword));
+
 export default router;

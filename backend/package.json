@@ -9,7 +9,8 @@
     "build": "node --check src/server.js && find src -name '*.js' -maxdepth 5 -print0 | xargs -0 -n1 node --check",
     "lint": "node --check src/server.js",
     "prisma:generate": "prisma generate",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "test:smoke": "node scripts/smoke-api.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",

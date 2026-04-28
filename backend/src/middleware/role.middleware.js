@@ -1,5 +1,11 @@
-export const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user) return res.status(401).json({ error: 'Unauthenticated' });
-  if (!roles.includes(req.user.role)) return res.status(403).json({ error: 'Forbidden' });
-  next();
-};
+import { AppError } from "../utils/http.js";
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return next(new AppError(401, "Unauthenticated"));
+    if (!roles.includes(req.user.role)) {
+      return next(new AppError(403, "You do not have permission for this action"));
+    }
+    next();
+  };
+}

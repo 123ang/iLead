@@ -76,7 +76,33 @@ Result: Prisma schema validation passed with placeholder DATABASE_URL. Prisma Cl
 
 ### Known limitations of this initial scaffold
 
-- No database migration has been run yet.
 - File upload and matching endpoints are scaffolds, not full workflows.
 - Frontend CRUD forms are not complete yet.
-- Auth refresh token persistence is simplified; production needs hashed refresh-token rotation using `RefreshToken` records.
+
+---
+
+## 2026-04-29 — Security + scope hardening (consolidated scaffold)
+
+### Backend
+
+- Single active route tree under `app.js`; removed duplicate `controllers/`, plural `*.routes.js`, and unused services/middleware.
+- **Auth:** Opaque refresh tokens stored as SHA-256 in `RefreshToken`, rotation on refresh, login excludes `deletedAt` users, HTTP-only cookie `ilead_refresh` (no refresh token in JSON body), `secure` in production, forgot/reset/change password flows, `assertTrustedOrigin` on cookie auth routes.
+- **RBAC:** Campaign create/delete limited to `SUPER_ADMIN` / `MANAGEMENT` / `CIAC_ADMIN`; master-data POST to `SUPER_ADMIN` / `CIAC_ADMIN`; `/users` returns no `passwordHash`.
+- **Dashboard / ROI:** Executive + funnel + per-campaign ROI scoped by role/faculty/staff; campaign ROI filters applications by leads touched in that campaign; `roiRatio` null when spend is zero.
+- **Validation:** Zod on applications, follow-ups, campaign enums; error handler supports `AppError` and JWT errors.
+- **Infra:** Global `/api` rate limit, CORS allow-list via `TRUSTED_ORIGINS` / `FRONTEND_URL`, audit log uses `req.user.id`.
+
+### Prisma
+
+- Migration `20260428223137_auth_scope_roles`: `PasswordResetToken`, unique `RefreshToken.tokenHash`, `Lead` indexes + `assignedAt`/`source`, `Application.sourceCampaignId` FK, `Campaign.actualSpendMyr`, `StudyLevel.MOBILITY`.
+
+### Frontend
+
+- Refresh interceptor uses a bare `axios` client to avoid infinite loops; logout on failed refresh.
+- **Password gate:** `mustChangePassword` → `/change-password` before main app.
+- **Nav:** Links filtered by role (e.g. Users for `SUPER_ADMIN` only).
+- Dashboard shows `n/a` when ROI ratio is null.
+
+### Repo
+
+- Stopped ignoring `backend/prisma/migrations` in `.gitignore` so migrations can be committed.

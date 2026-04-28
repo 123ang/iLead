@@ -1,6 +1,32 @@
-export function notFound(req, res) { res.status(404).json({ error: 'Not found', path: req.path }); }
-export function errorHandler(err, req, res, next) {
-  const status = err.statusCode || err.status || 500;
-  if (process.env.NODE_ENV !== 'test') console.error(err);
-  res.status(status).json({ error: err.message || 'Internal server error', details: err.details });
+import { AppError } from "../utils/http.js";
+import { env } from "../config/env.js";
+
+function isJwtError(err) {
+  const n = err?.name;
+  return n === "JsonWebTokenError" || n === "TokenExpiredError" || n === "NotBeforeError";
+}
+
+export function notFound(req, res) {
+  res.status(404).json({ error: "Not found", path: req.path });
+}
+
+export function errorHandler(err, req, res, _next) {
+  let status =
+    err instanceof AppError ? err.status : isJwtError(err) ? 401 : err.statusCode ?? err.status ?? 500;
+  status = Number(status);
+  if (!(status >= 400 && status <= 599)) status = 500;
+
+  if (status >= 500) console.error(err);
+  else if (env.nodeEnv !== "production") console.error(err);
+
+  const payload = { error: err.message || "Internal server error" };
+  const includeDetails =
+    env.nodeEnv !== "production" &&
+    typeof err.details !== "undefined" &&
+    err.details != null;
+
+  if (includeDetails) payload.details = err.details;
+  if (env.nodeEnv !== "production" && err.stack && status >= 400) payload.stack = err.stack;
+
+  res.status(status).json(payload);
 }

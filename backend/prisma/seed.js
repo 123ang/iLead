@@ -18,7 +18,7 @@ async function main() {
   const users = [
     ['Admin','admin@ilead.local','SUPER_ADMIN',null], ['CIAC Admin','ciac@ilead.local','CIAC_ADMIN',null], ['Registrar','registrar@ilead.local','REGISTRAR',null], ['Finance','finance@ilead.local','FINANCE',null], ['Staff One','staff@ilead.local','STAFF',faculties[0].id]
   ];
-  for (const [name,email,role,facultyId] of users) await prisma.user.upsert({ where:{email}, update:{}, create:{name,email,role,facultyId,passwordHash,mustChangePassword:true} });
+  for (const [name,email,role,facultyId] of users) await prisma.user.upsert({ where:{email}, update:{}, create:{name,email,role,facultyId,passwordHash,mustChangePassword:false} });
   const staff = await prisma.user.findUnique({where:{email:'staff@ilead.local'}});
   const myr = currencies.find(c=>c.code==='MYR');
   for (let i=0;i<5;i++) {
@@ -26,7 +26,7 @@ async function main() {
     await prisma.campaignCost.create({data:{campaignId:campaign.id,currencyId:myr.id,costType:'TRAVEL',description:'Flights, booth and allowance',amountOriginal:18000+i*3000,fxRateToMyr:1,amountMyr:18000+i*3000}});
     for (let j=0;j<12;j++) {
       const lead = await prisma.lead.create({data:{fullName:`Student ${i}-${j}`,email:`student${i}${j}@example.com`,countryId:countries[i].id,interestedProgrammeId:programmes[(i+j)%programmes.length].id,leadQuality:j%3===0?'HOT':j%3===1?'WARM':'COLD',status:j<5?'APPLIED':'CONTACTED',assignedStaffId:staff.id,touches:{create:{campaignId:campaign.id,source:j%2?'CSV_UPLOAD':'EVENT_FORM'}}}});
-      if (j<5) await prisma.application.create({data:{leadId:lead.id,applicantName:lead.fullName,email:lead.email,countryId:countries[i].id,programmeId:programmes[(i+j)%programmes.length].id,studyLevel:programmes[(i+j)%programmes.length].studyLevel,applicationStatus:j<2?'ENROLLED':j<4?'OFFERED':'APPLIED',applicationDate:d('2025-06-01'),offerDate:j<4?d('2025-07-01'):null,enrolmentDate:j<2?d('2025-09-01'):null,tuitionRevenueMyr:j<2?30000:0,scholarshipMyr:j===1?5000:0}});
+      if (j<5) await prisma.application.create({data:{leadId:lead.id,applicantName:lead.fullName,email:lead.email,countryId:countries[i].id,programmeId:programmes[(i+j)%programmes.length].id,studyLevel:programmes[(i+j)%programmes.length].studyLevel,applicationStatus:j<2?'ENROLLED':j<4?'OFFERED':'APPLIED',applicationDate:d('2025-06-01'),offerDate:j<4?d('2025-07-01'):null,enrolmentDate:j<2?d('2025-09-01'):null,sourceCampaignId:campaign.id,tuitionRevenueMyr:j<2?30000:0,scholarshipMyr:j===1?5000:0}});
     }
   }
   await prisma.scholarship.createMany({data:[{name:'UUM International Scholarship',discountPercent:25},{name:'Dean Waiver',amountMyr:5000}],skipDuplicates:true});

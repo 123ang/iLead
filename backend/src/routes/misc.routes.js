@@ -1,11 +1,70 @@
-import { Router } from 'express';
-import { prisma } from '../config/db.js';
-import { requireAuth } from '../middleware/auth.middleware.js';
-import { requireRole } from '../middleware/role.middleware.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-const router = Router(); router.use(requireAuth);
-router.get('/settings', asyncHandler(async (_req,res)=>res.json(await prisma.systemSetting.findMany({orderBy:{key:'asc'}}))));
-router.patch('/settings/:key', requireRole('SUPER_ADMIN'), asyncHandler(async (req,res)=>res.json(await prisma.systemSetting.upsert({where:{key:req.params.key},create:{key:req.params.key,value:req.body.value},update:{value:req.body.value}}))));
-router.get('/audit-logs', requireRole('SUPER_ADMIN','CIAC_ADMIN'), asyncHandler(async (_req,res)=>res.json(await prisma.auditLog.findMany({take:200,orderBy:{createdAt:'desc'}}))));
-router.get('/users', requireRole('SUPER_ADMIN'), asyncHandler(async (_req,res)=>res.json(await prisma.user.findMany({take:100,include:{faculty:true}}))));
+import { Router } from "express";
+import { prisma } from "../config/db.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireRole } from "../middleware/role.middleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+
+const userPublic = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  facultyId: true,
+  isActive: true,
+  mustChangePassword: true,
+  lastLoginAt: true,
+  createdAt: true,
+  faculty: true,
+};
+
+const router = Router();
+router.use(requireAuth);
+
+router.get(
+  "/settings",
+  asyncHandler(async (_req, res) =>
+    res.json(await prisma.systemSetting.findMany({ orderBy: { key: "asc" } })),
+  ),
+);
+
+router.patch(
+  "/settings/:key",
+  requireRole("SUPER_ADMIN"),
+  asyncHandler(async (req, res) =>
+    res.json(
+      await prisma.systemSetting.upsert({
+        where: { key: req.params.key },
+        create: { key: req.params.key, value: req.body.value },
+        update: { value: req.body.value },
+      }),
+    ),
+  ),
+);
+
+router.get(
+  "/audit-logs",
+  requireRole("SUPER_ADMIN", "CIAC_ADMIN"),
+  asyncHandler(async (_req, res) =>
+    res.json(
+      await prisma.auditLog.findMany({
+        take: 200,
+        orderBy: { createdAt: "desc" },
+      }),
+    ),
+  ),
+);
+
+router.get(
+  "/users",
+  requireRole("SUPER_ADMIN"),
+  asyncHandler(async (_req, res) =>
+    res.json(
+      await prisma.user.findMany({
+        take: 100,
+        select: userPublic,
+      }),
+    ),
+  ),
+);
+
 export default router;

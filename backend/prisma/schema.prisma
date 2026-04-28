@@ -43,6 +43,7 @@ enum StudyLevel {
   MASTER
   PHD
   EXECUTIVE
+  MOBILITY
   OTHER
 }
 
@@ -121,16 +122,31 @@ model User {
   assignedLeads      Lead[]
   followUps          FollowUp[]
   refreshTokens      RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model RefreshToken {
   id        String    @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  tokenHash String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Country {
@@ -204,6 +220,7 @@ model Campaign {
   objective       String?
   status          CampaignStatus      @default(PLANNED)
   approvedBudgetMyr Decimal           @default(0)
+  actualSpendMyr  Decimal           @default(0)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   deletedAt       DateTime?
@@ -216,6 +233,7 @@ model Campaign {
   mousMoas        MouMoa[]
   mobilityRecords MobilityRecord[]
   academicPeers   AcademicPeer[]
+  applicationsViaSource Application[] @relation("ApplicationSourceCampaign")
 }
 
 model CampaignCountry {
@@ -261,6 +279,8 @@ model Lead {
   status                LeadStatus           @default(NEW)
   assignedStaffId       String?
   assignedStaff         User?                @relation(fields: [assignedStaffId], references: [id])
+  assignedAt            DateTime?
+  source                LeadSource?
   notes                 String?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
@@ -268,6 +288,11 @@ model Lead {
   touches               LeadCampaignTouch[]
   followUps             FollowUp[]
   applications          Application[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([assignedStaffId])
+  @@index([status])
 }
 
 model LeadCampaignTouch {
@@ -326,12 +351,16 @@ model Application {
   applicationDate   DateTime?
   offerDate         DateTime?
   enrolmentDate     DateTime?
-  sourceCampaign    String?
+  sourceCampaignId  String?
+  sourceCampaign    Campaign?         @relation("ApplicationSourceCampaign", fields: [sourceCampaignId], references: [id])
   scholarshipMyr    Decimal           @default(0)
   tuitionRevenueMyr Decimal           @default(0)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   deletedAt         DateTime?
+
+  @@index([leadId])
+  @@index([applicationStatus])
 }
 
 model CampaignCost {

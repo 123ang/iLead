@@ -243,22 +243,16 @@ Generate Prisma client:
 npm run prisma:generate
 ```
 
-Because this early scaffold may not have migration files yet, use `db push` for the first VPS setup:
-
-```bash
-cd backend
-npx prisma db push
-npm run seed
-cd ..
-```
-
-Later, after proper migrations exist, production should use:
+Apply the committed database migration files:
 
 ```bash
 cd backend
 npx prisma migrate deploy
+npm run seed
 cd ..
 ```
+
+Only use `npx prisma db push` for quick local experiments. For VPS/production, prefer `migrate deploy` so the database follows committed migration history.
 
 ---
 
@@ -491,7 +485,7 @@ git pull
 npm install
 npm run prisma:generate
 cd backend
-npx prisma db push
+npx prisma migrate deploy
 cd ..
 npm run build
 pm2 restart ilead-api
@@ -515,7 +509,7 @@ cd /var/www/ilead
 npm install
 npm run prisma:generate
 cd backend
-npx prisma db push
+npx prisma migrate deploy
 cd ..
 npm run build
 pm2 restart ilead-api
