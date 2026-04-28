@@ -1,126 +1,323 @@
-# iLead — Pre-Development TODO
+# iLead Full-Solution TODO
 
-> Status as of doc v3.0 (`iLead_Developer_Document_Final.md`).  
-> Items marked `[x]` are now resolved in the final developer doc.
+> Working rule from 2026-04-29: this is no longer allowed to remain a scaffold. Every item must become working code, be tested, and be ticked only after verification. Opus will audit the code, so implementation must be clean, secure, and evidence-backed.
 
----
+Legend:
 
-## A. Schema fixes (resolved in `iLead_Developer_Document_Final.md` §7)
-
-- [x] Decide B1: keep `LeadCampaignTouch` (LINK) — locked in §0 of final doc.
-- [x] Update B2 to "at least one of email / phone / passport / externalLeadId" — Zod rule in §10.1.
-- [x] Clarify C1: V1 = iLead's own REST API; SIS read-only API is V2 — locked in §0.
-- [x] Add `@relation` for `Enrolment.scholarshipId`, `Enrolment.sponsorId`, `MouMoa.countryId`, `MobilityRecord.countryId`, `AcademicPeer.countryId`, `Sponsor.countryId`.
-- [x] Add `Offer.programmeId` (nullable FK Programme).
-- [x] Add `Enrolment.programmeId` (nullable FK Programme).
-- [x] Add `@@index([applicationId])` to `Enrolment` (and `Offer`).
-- [x] Add `Lead.assignedAt DateTime?`.
-- [x] Add `Lead.source LeadSource?` enum.
-- [x] Add `LeadStatusHistory` and `ApplicationStatusHistory` tables.
-- [x] Add `RefreshToken` table for revocable sessions.
-- [x] Add `PasswordResetToken` table.
-- [x] Add `UploadBatch` table for CSV upload audit / rollback.
-- [x] Add `SystemSetting` (key/value JSON) table — defaults seeded in §8.
-- [x] `Campaign.actualSpendMyr` is **derived** (sum of `CampaignCost.amountMyr`), refreshed on cost write — documented §0 + §7.
-- [x] `CampaignMetric` is a **daily snapshot** (`@@unique([campaignId, metricDate])`) — documented §0.
-- [x] Add `ExecutiveProgrammeIncome` table.
-- [x] Add `Enrolment.manualAttributionCampaignId` for non-auto-matched enrolments.
-
-## B. Business rule clarifications (resolved in §10)
-
-- [x] Per-quality SLA: HOT=1d, WARM=3d, COLD=7d as `SystemSetting` keys (§8, §10.3).
-- [x] Define "overdue" exactly: calendar days, MYT, configurable to business-days-only (§10.3).
-- [x] Define lead deduplication outcome: LINK via `LeadCampaignTouch` (§5.5).
-- [x] Define manual attribution for unmatched enrolments (§10.8).
-- [x] Define data retention: PII anonymized after `pii.retention.years` (default 5) (§10.9).
-- [x] List admin-configurable flags in `SystemSetting` (§8).
-
-## C. Auth / security details (resolved in §16)
-
-- [x] Password reset flow + `PasswordResetToken` table (§5.1, §11.1).
-- [x] CSRF strategy: SameSite=Lax + double-submit cookie pattern (§16.2).
-- [x] Rate limits: login 5/5min/IP, forgot 3/hour/email; configurable via SystemSetting (§16.1).
-- [x] `User.passwordHash` is nullable for future SSO; required at API for MVP (§7).
-
-## D. Seed / sample data (planned in §18)
-
-- [ ] Implement `prisma/seed.ts` per §18 spec:
-  - 8 countries, 5 faculties, 25 programmes, 5 currencies + FX, 30 tuition fees.
-  - 1 SUPER_ADMIN + 2 MANAGEMENT + 3 CIAC_ADMIN + 5 FACULTY_DEAN + 10 STAFF + 1 REGISTRAR + 1 FINANCE.
-  - 10 campaigns (3 umbrella, 2 high-ROI, 2 low-ROI, 1 scholarship-heavy).
-  - 50–200 leads/campaign with cross-campaign touches.
-  - Funnel: 30% lead→app, 60% app→offer, 50% offer→enrol; 20% scholarship/sponsored.
-  - 20 MoUs, 15 mobility, 10 academic peers, 5 exec income.
-  - All `SystemSetting` defaults seeded.
-- [ ] Add `npm run seed` script (`"prisma": { "seed": "ts-node prisma/seed.ts" }`).
-- [ ] Use `@faker-js/faker` for realistic names/emails/phones.
-
-## E. Branding / UX assets (still need to obtain)
-
-- [ ] Get UUM brand pack from UUM Comms: logo (SVG), primary/secondary colours (hex), font name.
-- [ ] Confirm domain `ilead.uum.edu.my` with UUM IT (DNS + SSL).
-- [ ] Confirm SMTP credentials for `no-reply@uum.edu.my` (Microsoft 365 or Zoho).
-- [ ] Get 2–3 sample real campaign / lead Excel files from CIAC for template mapping.
-- [ ] Prepare default placeholder branding in `frontend/src/assets/` until brand pack arrives (see §20 of final doc).
-
-## F. Stakeholder sign-off (must complete before `prisma migrate dev`)
-
-Send `iLead_Stakeholder_SignOff.md` (companion file) to:
-
-- [ ] CIAC — confirm campaign workflow + dedup decision + SLA per quality.
-- [ ] Registrar / Admission — confirm CSV upload templates + matching priority.
-- [ ] Finance — confirm currency / FX rule + cost categories.
-- [ ] Faculty Deans — confirm visibility rule for umbrella campaigns.
-- [ ] DVC / Top Management — confirm ROI revenue basis defaults (first-year + full-programme both shown).
-- [ ] UUM IT — confirm hosting (internal vs external VPS), PDPA review, backup destination, SSO timeline.
-- [ ] UUM Legal / DPO — confirm data retention period (5 years default) + PII export rules.
-
-## G. Project setup tasks (week 1)
-
-- [ ] Init repo: `frontend/` (React + Vite + Tailwind + shadcn) and `backend/` (Node + Express + Prisma).
-- [ ] PostgreSQL DB created locally; `.env` files created (do NOT commit).
-- [ ] Copy `prisma/schema.prisma` from `iLead_Developer_Document_Final.md` §7.
-- [ ] Run `npx prisma migrate dev --name init`.
-- [ ] Run `npm run seed`.
-- [ ] Set up shadcn/ui + Recharts on frontend.
-- [ ] Set up auth scaffolding (login, refresh, /me, forgot-password).
-- [ ] Set up Redis + BullMQ for jobs.
-- [ ] Set up GitHub Actions CI (lint + typecheck + tests).
-- [ ] Set up Pino logger + request-id middleware on backend.
-- [ ] Set up Sentry (or self-hosted equivalent) for error tracking.
-
-## H. Risk register (track during build)
-
-- [ ] Solo dev + 14 weeks: scope creep is risk #1. Freeze V1 scope at end of week 2.
-- [ ] PDPA compliance review before deploying to production (week 12).
-- [ ] Backup restore drill (week 13).
-- [ ] UAT with at least 1 CIAC user, 1 Dean, 1 Registrar, 1 Finance, 1 Staff (week 13).
-- [ ] If SIS data is unavailable, V1 ships with CSV-only — communicate this risk to stakeholders week 1.
-- [ ] If brand pack delayed beyond week 4, ship with placeholder branding and skin later.
-
-## I. Deployment readiness (week 13–14)
-
-- [ ] VPS provisioned (Ubuntu 22.04 LTS, 4 vCPU, 8 GB RAM, 100 GB SSD minimum).
-- [ ] PostgreSQL 15+ installed + tuned (shared_buffers, work_mem).
-- [ ] Redis installed.
-- [ ] Nginx config: HTTPS only, HSTS, gzip, rate limiting at proxy level.
-- [ ] SSL via Let's Encrypt (auto-renew via certbot).
-- [ ] PM2 ecosystem file with cluster mode for backend.
-- [ ] Daily pg_dump cron + off-site sync (e.g. rclone to S3-compatible storage).
-- [ ] Monthly backup retention via separate cron.
-- [ ] Monitoring: uptime check + disk/CPU alert (e.g. UptimeRobot + Netdata).
-- [ ] Run end-to-end smoke test on production DNS before announcing.
-- [ ] Train CIAC + 1 staff user; record session for future onboarding.
+- [x] Done and verified
+- [ ] Not done yet
+- [~] In progress / partially implemented, do not count as done
 
 ---
 
-## Quick reference
+## 0. Project baseline and verification
 
-| File | Purpose |
-|---|---|
-| `iLead_Business_Proposal_Updated.md` | Business case for management / grant. |
-| `iLead_Developer_Document_Final.md` | **Implementation source of truth** (schema, rules, APIs, security). |
-| `iLead_Stakeholder_SignOff.md` | One-page sign-off form for CIAC / Registrar / Finance / IT. |
-| `to-do-list.md` | This file — track build progress. |
+- [x] Read core documents and use `iLead_Developer_Document_Final.md` as the source of truth.
+- [x] Initialize git repository.
+- [x] Create monorepo with `backend/` and `frontend/` workspaces.
+- [x] Add root `README.md`.
+- [x] Add beginner VPS deployment guide `deploy.md`.
+- [x] Install npm dependencies.
+- [x] Generate Prisma Client successfully.
+- [x] Validate Prisma schema successfully with placeholder `DATABASE_URL`.
+- [x] Build backend syntax check successfully.
+- [x] Build frontend Vite production bundle successfully.
+- [x] Commit baseline scaffold: `3d2b10b`.
+- [x] Commit deployment guide: `d187aed`.
+- [x] Commit auth/security hardening: `fe7ebb6`.
+- [ ] Run against a real local PostgreSQL database.
+- [ ] Run migration from a clean database.
+- [ ] Run seed from a clean database.
+- [ ] Run HTTP smoke test successfully against running backend.
+- [ ] Run browser/E2E test against running frontend + backend.
 
-**Next action:** complete §F (stakeholder sign-off) → §E (brand pack + domain) → §G (week 1 setup) → §D (seed) → start Phase 2 of §21 in final doc.
+---
+
+## 1. Database and Prisma schema
+
+- [x] Implement core schema for users, roles, auth tokens, password reset tokens.
+- [x] Implement master data schema: countries, faculties, programmes, currencies, FX, tuition fees, scholarships, sponsors.
+- [x] Implement campaign schema with multi-country, multi-faculty, multi-programme join tables.
+- [x] Implement `LeadCampaignTouch` so repeated campaign appearances do not duplicate student identity.
+- [x] Implement lead identifier fields: email, phone, passport number, external lead ID.
+- [x] Implement follow-up schema.
+- [x] Implement application schema.
+- [x] Implement campaign costs and ROI metric snapshot schema.
+- [x] Implement `SystemSetting` table.
+- [x] Implement audit log table.
+- [x] Add committed Prisma migration files.
+- [~] Add `Campaign.actualSpendMyr` field; still needs automatic refresh on cost writes.
+- [ ] Add explicit Offer and Enrolment tables if still required by final doc after current Application-status simplification review.
+- [ ] Add `LeadStatusHistory` and `ApplicationStatusHistory` if still required by final doc.
+- [ ] Add `UploadBatch` table and upload-row audit/rollback support.
+- [ ] Add `ExecutiveProgrammeIncome` table.
+- [ ] Add manual attribution support for unmatched enrolments/campaigns.
+- [ ] Add database indexes for reporting performance after real query review.
+
+---
+
+## 2. Seed data
+
+- [~] Seed script exists with basic fake non-PII data.
+- [ ] Seed exactly/spec-compliant: 8 countries.
+- [ ] Seed exactly/spec-compliant: 5 faculties.
+- [ ] Seed exactly/spec-compliant: 25 programmes.
+- [ ] Seed currencies and FX rates for required currencies/months.
+- [ ] Seed 30 tuition fees.
+- [ ] Seed 1 SUPER_ADMIN, 2 MANAGEMENT, 3 CIAC_ADMIN, 5 FACULTY_DEAN, 10 STAFF, 1 REGISTRAR, 1 FINANCE.
+- [ ] Seed 10 campaigns including 3 umbrella campaigns.
+- [ ] Seed 2 high-ROI campaigns, 2 low-ROI campaigns, and 1 scholarship-heavy campaign.
+- [ ] Seed 50–200 leads per campaign.
+- [ ] Seed cross-campaign touches for duplicate/repeated students.
+- [ ] Seed 30% lead→application, 60% application→offer, 50% offer→enrolment funnel.
+- [ ] Seed 20% scholarship/sponsored enrolments.
+- [ ] Seed 20 MoUs/MoAs, 15 mobility records, 10 academic peers, 5 executive programme incomes.
+- [ ] Seed all default `SystemSetting` keys.
+- [ ] Verify seed is idempotent or safely resettable.
+
+---
+
+## 3. Backend API — auth and security
+
+- [x] Login endpoint implemented.
+- [x] `/me` endpoint implemented.
+- [x] Refresh endpoint implemented with HTTP-only refresh cookie.
+- [x] Refresh token hashing and rotation implemented.
+- [x] Logout implemented.
+- [x] Forgot password scaffold implemented.
+- [x] Reset password implemented.
+- [x] Change password implemented.
+- [x] Must-change-password flag handled by backend/frontend.
+- [x] Basic RBAC middleware implemented.
+- [x] CORS/trusted-origin allowlist implemented.
+- [x] Global API rate limit implemented.
+- [~] Auth audit logging exists partially; needs complete success/failure audit coverage.
+- [ ] Add login failure rate limit exactly as final spec: 5 attempts / 5 minutes / IP.
+- [ ] Add forgot-password rate limit: 3 per hour per email.
+- [ ] Add double-submit CSRF token for cookie-auth mutating endpoints if using cookie auth beyond refresh.
+- [ ] Add production-grade email sending for password reset / notifications.
+- [ ] Add tests for auth, refresh rotation, logout, password reset, and RBAC.
+
+---
+
+## 4. Backend API — master data
+
+- [x] Master data read endpoints exist.
+- [x] Master data create endpoint restricted to admin roles.
+- [ ] Implement update endpoints for country/faculty/programme/currency/FX/tuition/scholarship/sponsor.
+- [ ] Implement soft-disable/isActive flows.
+- [ ] Implement server-side pagination, filtering, and search.
+- [ ] Implement validation schemas for each master data type.
+- [ ] Add tests for master data permissions and validation.
+
+---
+
+## 5. Backend API — campaigns
+
+- [x] Campaign list endpoint exists.
+- [x] Campaign create endpoint exists.
+- [x] Campaign detail endpoint exists.
+- [x] Campaign soft delete endpoint exists.
+- [x] Campaign ROI endpoint exists.
+- [ ] Implement campaign update endpoint including country/faculty/programme mappings.
+- [ ] Implement campaign cost CRUD.
+- [ ] Automatically refresh `Campaign.actualSpendMyr` from `CampaignCost.amountMyr` on cost write/delete.
+- [ ] Implement campaign performance endpoint with funnel, costs, revenue, and recommendations.
+- [ ] Implement role-specific campaign visibility completely.
+- [ ] Add tests for campaign CRUD, many-to-many mapping, ROI, and permissions.
+
+---
+
+## 6. Backend API — leads and follow-up
+
+- [x] Lead list endpoint exists.
+- [x] Lead create endpoint exists.
+- [x] Lead detail endpoint exists.
+- [x] Lead status update endpoint exists.
+- [x] Lead soft delete endpoint exists.
+- [x] Lead create validates at least one identifier.
+- [x] Follow-up list/create/overdue endpoints exist.
+- [ ] Implement lead update endpoint.
+- [ ] Implement lead assign endpoint.
+- [ ] Implement lead status history.
+- [ ] Implement robust overdue SLA calculation using HOT/WARM/COLD settings in MYT.
+- [ ] Implement staff-specific lead visibility and assignment rules.
+- [ ] Implement in-app notifications for assignment and overdue follow-ups.
+- [ ] Add tests for lead validation, assignment, SLA, status transitions, and permissions.
+
+---
+
+## 7. Backend API — deduplication
+
+- [~] Duplicate queue route exists.
+- [ ] Implement exact duplicate detection: email.
+- [ ] Implement exact duplicate detection: phone.
+- [ ] Implement exact duplicate detection: passport.
+- [ ] Implement possible duplicate detection: same name + country + programme.
+- [ ] Implement manual merge queue actions: accept/link, reject, mark reviewed.
+- [ ] Ensure accepted duplicates use `LeadCampaignTouch`, not duplicate lead rows.
+- [ ] Add duplicate report endpoint.
+- [ ] Add tests for exact/fuzzy duplicate detection and merge behavior.
+
+---
+
+## 8. Backend API — application, offer, enrolment, matching
+
+- [x] Application list endpoint exists.
+- [x] Application create endpoint exists.
+- [x] Unmatched application endpoint exists.
+- [~] Upload endpoint exists but is only placeholder.
+- [~] Match-leads endpoint exists but is only placeholder.
+- [ ] Implement application update endpoint.
+- [ ] Implement CSV/XLSX upload parsing.
+- [ ] Implement upload validation report with row-level errors.
+- [ ] Implement `UploadBatch` audit and rollback.
+- [ ] Implement lead matching priority: email, phone, passport, name+programme+country, source campaign.
+- [ ] Implement conflict/manual-review queue.
+- [ ] Implement offer/enrolment workflow or explicit tables per final schema decision.
+- [ ] Implement scholarship-adjusted revenue calculation.
+- [ ] Add tests for upload validation, matching, conflict review, and revenue calculation.
+
+---
+
+## 9. Backend API — ROI, metrics, reporting, exports
+
+- [x] ROI service with safe division exists.
+- [x] Executive dashboard endpoint exists.
+- [x] Recruitment funnel endpoint exists.
+- [x] Per-campaign ROI filters applications by touched leads.
+- [ ] Implement daily `CampaignMetric` refresh job.
+- [ ] Implement dashboard performance targets with real indexes and query tuning.
+- [ ] Implement country performance report.
+- [ ] Implement faculty performance report.
+- [ ] Implement programme conversion report.
+- [ ] Implement follow-up SLA report.
+- [ ] Implement duplicate lead report.
+- [ ] Implement scholarship-adjusted revenue report.
+- [ ] Implement Excel/CSV exports.
+- [ ] Implement PDF exports if required for V1.
+- [ ] Audit-log every PII export.
+- [ ] Add tests for ROI edge cases, reports, and PII export permissions.
+
+---
+
+## 10. Frontend — auth and layout
+
+- [x] Vite React app created.
+- [x] Tailwind configured.
+- [x] Login page implemented.
+- [x] In-memory access token store implemented.
+- [x] Refresh interceptor implemented.
+- [x] Protected routes implemented.
+- [x] Must-change-password page implemented.
+- [x] Sidebar layout implemented.
+- [x] Role-filtered nav partially implemented.
+- [ ] Add forgot password page.
+- [ ] Add reset password page.
+- [ ] Add logout button and session expiry UX.
+- [ ] Add user profile/change password UX in main layout.
+- [ ] Add loading/error/toast system.
+- [ ] Add frontend auth tests.
+
+---
+
+## 11. Frontend — functional modules
+
+- [x] Dashboard page exists with stat cards and funnel chart.
+- [x] Generic list page exists.
+- [~] Campaign list uses backend API but lacks real actions/forms.
+- [~] Lead list uses backend API but lacks real actions/forms.
+- [~] Settings/users/audit pages use generic list views only.
+- [ ] Implement Campaign list filters/search/pagination.
+- [ ] Implement Campaign create/edit form with multi-country/faculty/programme selection.
+- [ ] Implement Campaign detail page with funnel, costs, ROI, leads, applications.
+- [ ] Implement Campaign cost form.
+- [ ] Implement Lead list filters/search/pagination.
+- [ ] Implement Lead create/edit form.
+- [ ] Implement Lead detail page with campaign touches, follow-ups, applications.
+- [ ] Implement Follow-up create/edit UI and overdue queue.
+- [ ] Implement Duplicate Leads page with merge/reject actions.
+- [ ] Implement Application upload page with file upload, column mapping, validation preview.
+- [ ] Implement Match Conflicts page.
+- [ ] Implement Reports pages with charts and export buttons.
+- [ ] Implement Master Data CRUD pages.
+- [ ] Implement User Management CRUD page.
+- [ ] Implement Settings edit page.
+- [ ] Implement Audit Logs filtering page.
+- [ ] Add responsive/mobile-friendly UI polish.
+- [ ] Add frontend component/integration tests.
+
+---
+
+## 12. Jobs, notifications, retention, integrations
+
+- [ ] Set up Redis/BullMQ or a documented simpler MVP cron alternative.
+- [ ] Implement metrics refresh job.
+- [ ] Implement overdue digest job.
+- [ ] Implement weekly campaign summary job.
+- [ ] Implement PII retention/anonymization job.
+- [ ] Implement in-app notification read/unread endpoints.
+- [ ] Implement email templates and SMTP sending.
+- [ ] Keep SIS direct API, WhatsApp, SSO, AI scoring, BI as V2 unless user promotes scope.
+
+---
+
+## 13. Testing and audit readiness
+
+- [x] Backend syntax check passes.
+- [x] Frontend production build passes.
+- [x] Prisma schema validation passes.
+- [~] Smoke test script exists but still needs real DB runtime execution.
+- [ ] Add automated unit test framework.
+- [ ] Unit tests: ROI formulas.
+- [ ] Unit tests: SLA overdue calculation.
+- [ ] Unit tests: currency FX conversion and frozen MYR amounts.
+- [ ] Integration tests: auth and RBAC.
+- [ ] Integration tests: lead validation and dedupe.
+- [ ] Integration tests: upload validation and matching.
+- [ ] Integration tests: dashboard metrics accuracy.
+- [ ] E2E test: login → create campaign → create/upload leads → follow up → upload applications → match → see ROI.
+- [ ] Security test: PII export permission and audit log.
+- [ ] Soft delete tests.
+- [ ] Timezone rendering/storage tests.
+- [ ] Performance test with large seeded data.
+- [ ] Produce `TEST_REPORT.md` before claiming full completion.
+
+---
+
+## 14. Deployment readiness
+
+- [x] Beginner VPS guide exists.
+- [x] Deployment guide updated to use `prisma migrate deploy`.
+- [ ] Add PM2 ecosystem config.
+- [ ] Add production Nginx config template in repo.
+- [ ] Add backup scripts.
+- [ ] Add restore drill documentation.
+- [ ] Add GitHub Actions CI.
+- [ ] Add production `.env` checklist.
+- [ ] Add monitoring/uptime checklist.
+- [ ] Run production-like deploy smoke test before launch.
+
+---
+
+## 15. External dependencies / user-side blockers
+
+These require real stakeholder or infrastructure input and cannot be honestly ticked by code alone:
+
+- [ ] UUM brand pack: logo SVG, official colours, fonts.
+- [ ] Domain/DNS decision: e.g. `ilead.uum.edu.my` or temporary VPS domain.
+- [ ] SMTP credentials for real email sending.
+- [ ] 2–3 real sample CSV/XLSX campaign/lead/application files for upload mapping.
+- [ ] Hosting decision and PDPA review.
+- [ ] Stakeholder sign-off from CIAC, Registrar, Finance, Deans, DVC, IT, DPO.
+
+---
+
+## Immediate next build order
+
+1. Make local PostgreSQL runtime pass: migrate, seed, backend start, smoke test.
+2. Complete missing database tables/features required by final doc.
+3. Replace frontend placeholders with real CRUD for Campaign + Lead + Follow-up.
+4. Implement upload + matching + dedupe.
+5. Implement reports/exports/jobs.
+6. Add tests and produce `TEST_REPORT.md`.
