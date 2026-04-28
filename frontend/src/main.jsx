@@ -18,6 +18,12 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import ListPage from "./pages/ListPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
+import CampaignsPage from "./pages/CampaignsPage.jsx";
+import CampaignDetailPage from "./pages/CampaignDetailPage.jsx";
+import LeadsPage from "./pages/LeadsPage.jsx";
+import LeadDetailPage from "./pages/LeadDetailPage.jsx";
+import DuplicatesPage from "./pages/DuplicatesPage.jsx";
+import ApplicationUploadPage from "./pages/ApplicationUploadPage.jsx";
 
 const qc = new QueryClient();
 
@@ -51,43 +57,13 @@ function AppRoutes() {
             <Route index element={<DashboardPage />} />
             <Route
               path="campaigns"
-              element={
-                <ListPage
-                  title="Campaigns"
-                  endpoint="/campaigns"
-                  detailBase="/campaigns"
-                />
-              }
+              element={<CampaignsPage />}
             />
-            <Route
-              path="campaigns/:id"
-              element={<PlaceholderPage title="Campaign Detail" />}
-            />
-            <Route
-              path="leads"
-              element={
-                <ListPage title="Leads" endpoint="/leads" detailBase="/leads" />
-              }
-            />
-            <Route
-              path="leads/:id"
-              element={<PlaceholderPage title="Lead Detail" />}
-            />
-            <Route
-              path="duplicates"
-              element={
-                <ListPage
-                  title="Duplicate Lead Queue"
-                  endpoint="/leads/duplicates"
-                />
-              }
-            />
-            <Route
-              path="applications/upload"
-              element={
-                <PlaceholderPage title="Application / Offer / Enrolment Upload" />
-              }
-            />
+            <Route path="campaigns/:id" element={<CampaignDetailPage />} />
+            <Route path="leads" element={<LeadsPage />} />
+            <Route path="leads/:id" element={<LeadDetailPage />} />
+            <Route path="duplicates" element={<DuplicatesPage />} />
+            <Route path="applications/upload" element={<ApplicationUploadPage />} />
             <Route
               path="reports"
               element={<PlaceholderPage title="Reports" />}

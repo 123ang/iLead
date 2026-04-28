@@ -1,24 +1,23 @@
 import { Router } from "express";
-import { z } from "zod";
 import { prisma } from "../config/db.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { leadCreateSchema } from "../validators/lead.schema.js";
+import {
+  leadAssignSchema,
+  leadCreateSchema,
+  leadStatusSchema,
+  leadUpdateSchema,
+} from "../validators/lead.schema.js";
 import { audit } from "../utils/audit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { scopedLeadWhere } from "../services/dashboard-scope.service.js";
-
-const statusSchema = z.object({
-  status: z.enum([
-    "NEW",
-    "CONTACTED",
-    "INTERESTED",
-    "APPLIED",
-    "OFFERED",
-    "ENROLLED",
-    "LOST",
-    "DUPLICATE",
-  ]),
-});
+import {
+  createDuplicateCandidatesForLead,
+  mergeLeadCandidate,
+} from "../services/duplicate-lead.service.js";
+import {
+  leadHasIdentifier,
+  normalizeLeadIdentifiers,
+} from "../services/lead-identity.service.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -30,6 +29,11 @@ router.get(
       await prisma.leadMergeCandidate.findMany({
         take: 100,
         orderBy: { createdAt: "desc" },
+        include: {
+          leadA: true,
+          leadB: true,
+          reviewer: { select: { id: true, name: true, email: true } },
+        },
       }),
     ),
   ),
@@ -64,14 +68,37 @@ router.post(
   "/",
   asyncHandler(async (req, res) => {
     const data = leadCreateSchema.parse(req.body);
-    const { campaignId, ...leadData } = data;
-    const lead = await prisma.lead.create({
-      data: {
-        ...leadData,
-        email: leadData.email || null,
-        touches: campaignId ? { create: { campaignId } } : undefined,
-      },
+    const normalized = normalizeLeadIdentifiers(data);
+    const { campaignId, ...leadData } = normalized;
+
+    const lead = await prisma.$transaction(async (tx) => {
+      const created = await tx.lead.create({
+        data: {
+          ...leadData,
+          assignedAt: leadData.assignedStaffId ? new Date() : null,
+          touches: campaignId
+            ? {
+                create: {
+                  campaignId,
+                  source: leadData.source ?? "MANUAL_ENTRY",
+                },
+              }
+            : undefined,
+        },
+      });
+      await tx.leadStatusHistory.create({
+        data: {
+          leadId: created.id,
+          fromStatus: null,
+          toStatus: created.status,
+          changedById: req.user.id,
+          reason: "Lead created",
+        },
+      });
+      await createDuplicateCandidatesForLead(created.id, tx);
+      return created;
     });
+
     await audit(req, "CREATE", "Lead", lead.id, null, lead);
     res.status(201).json(lead);
   }),
@@ -85,10 +112,19 @@ router.get(
         where: { id: req.params.id },
         include: {
           followUps: true,
-          applications: true,
+          applications: {
+            include: { offers: true, enrolments: true },
+          },
           touches: { include: { campaign: true } },
           country: true,
           interestedProgramme: true,
+          statusHistory: {
+            include: {
+              changedBy: { select: { id: true, name: true, email: true } },
+            },
+            orderBy: { changedAt: "desc" },
+          },
+          assignedStaff: true,
         },
       }),
     ),
@@ -96,25 +132,191 @@ router.get(
 );
 
 router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const data = leadUpdateSchema.parse(req.body);
+    const current = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const merged = normalizeLeadIdentifiers({ ...current, ...data });
+    if (!leadHasIdentifier(merged)) {
+      return res.status(400).json({
+        message:
+          "Lead must include at least one identifier: email, phone, passportNumber, or externalLeadId",
+      });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const { campaignId, ...leadData } = merged;
+      const lead = await tx.lead.update({
+        where: { id: req.params.id },
+        data: {
+          fullName: leadData.fullName,
+          email: leadData.email,
+          phone: leadData.phone,
+          passportNumber: leadData.passportNumber,
+          externalLeadId: leadData.externalLeadId,
+          countryId: leadData.countryId,
+          interestedProgrammeId: leadData.interestedProgrammeId,
+          studyLevel: leadData.studyLevel,
+          leadQuality: leadData.leadQuality,
+          source: leadData.source,
+          assignedStaffId: leadData.assignedStaffId,
+          assignedAt:
+            data.assignedStaffId && data.assignedStaffId !== current.assignedStaffId
+              ? new Date()
+              : current.assignedAt,
+          notes: leadData.notes,
+          status: leadData.status,
+        },
+      });
+
+      if (campaignId) {
+        await tx.leadCampaignTouch.upsert({
+          where: {
+            leadId_campaignId: {
+              leadId: req.params.id,
+              campaignId,
+            },
+          },
+          update: {
+            source: leadData.source ?? "MANUAL_ENTRY",
+          },
+          create: {
+            leadId: req.params.id,
+            campaignId,
+            source: leadData.source ?? "MANUAL_ENTRY",
+          },
+        });
+      }
+
+      if (current.status !== lead.status) {
+        await tx.leadStatusHistory.create({
+          data: {
+            leadId: lead.id,
+            fromStatus: current.status,
+            toStatus: lead.status,
+            changedById: req.user.id,
+            reason: "Lead updated",
+          },
+        });
+      }
+
+      await createDuplicateCandidatesForLead(lead.id, tx);
+      return lead;
+    });
+
+    await audit(req, "UPDATE", "Lead", updated.id, current, updated);
+    res.json(updated);
+  }),
+);
+
+router.patch(
+  "/:id/assign",
+  asyncHandler(async (req, res) => {
+    const { assignedStaffId } = leadAssignSchema.parse(req.body);
+    const current = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const updated = await prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.update({
+        where: { id: req.params.id },
+        data: {
+          assignedStaffId,
+          assignedAt: new Date(),
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: assignedStaffId,
+          title: "Lead assigned",
+          message: `${lead.fullName} has been assigned to you.`,
+          type: "LEAD_ASSIGNED",
+          link: `/leads/${lead.id}`,
+        },
+      });
+      return lead;
+    });
+    await audit(req, "ASSIGN", "Lead", updated.id, current, updated);
+    res.json(updated);
+  }),
+);
+
+router.patch(
   "/:id/status",
   asyncHandler(async (req, res) => {
-    const { status } = statusSchema.parse(req.body);
-    return res.json(
-      await prisma.lead.update({
+    const { status, reason } = leadStatusSchema.parse(req.body);
+    const current = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const updated = await prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.update({
         where: { id: req.params.id },
         data: { status },
-      }),
-    );
+      });
+      await tx.leadStatusHistory.create({
+        data: {
+          leadId: lead.id,
+          fromStatus: current.status,
+          toStatus: status,
+          changedById: req.user.id,
+          reason: reason ?? null,
+        },
+      });
+      return lead;
+    });
+    await audit(req, "STATUS_UPDATE", "Lead", updated.id, current, updated);
+    res.json(updated);
+  }),
+);
+
+router.post(
+  "/duplicates/:id/merge",
+  asyncHandler(async (req, res) => {
+    const merged = await mergeLeadCandidate({
+      candidateId: req.params.id,
+      reviewerId: req.user.id,
+    });
+    await audit(req, "MERGE_DUPLICATE", "LeadMergeCandidate", req.params.id, null, merged);
+    res.json({ ok: true, merged });
+  }),
+);
+
+router.post(
+  "/duplicates/:id/reject",
+  asyncHandler(async (req, res) => {
+    const updated = await prisma.leadMergeCandidate.update({
+      where: { id: req.params.id },
+      data: {
+        status: "NOT_DUPLICATE",
+        reviewedBy: req.user.id,
+        reviewedAt: new Date(),
+      },
+    });
+    await audit(req, "REJECT_DUPLICATE", "LeadMergeCandidate", updated.id, null, updated);
+    res.json(updated);
+  }),
+);
+
+router.post(
+  "/duplicates/:id/ignore",
+  asyncHandler(async (req, res) => {
+    const updated = await prisma.leadMergeCandidate.update({
+      where: { id: req.params.id },
+      data: {
+        status: "IGNORED",
+        reviewedBy: req.user.id,
+        reviewedAt: new Date(),
+      },
+    });
+    await audit(req, "IGNORE_DUPLICATE", "LeadMergeCandidate", updated.id, null, updated);
+    res.json(updated);
   }),
 );
 
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    await prisma.lead.update({
+    const before = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const deleted = await prisma.lead.update({
       where: { id: req.params.id },
       data: { deletedAt: new Date() },
     });
+    await audit(req, "SOFT_DELETE", "Lead", req.params.id, before, deleted);
     res.json({ ok: true });
   }),
 );

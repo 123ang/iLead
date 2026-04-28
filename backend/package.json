@@ -9,7 +9,10 @@
     "build": "node --check src/server.js && find src -name '*.js' -maxdepth 5 -print0 | xargs -0 -n1 node --check",
     "lint": "node --check src/server.js",
     "prisma:generate": "prisma generate",
+    "prisma:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@localhost:55432/ilead_db} prisma validate",
+    "db:migrate": "prisma migrate dev",
     "seed": "prisma db seed",
+    "test": "node --test",
     "test:smoke": "node scripts/smoke-api.mjs"
   },
   "dependencies": {

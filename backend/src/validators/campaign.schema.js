@@ -26,3 +26,26 @@ export const campaignCreateSchema = z.object({
   facultyIds: z.array(z.string().cuid()).optional(),
   programmeIds: z.array(z.string().cuid()).optional(),
 });
+
+export const campaignUpdateSchema = campaignCreateSchema.partial().extend({
+  name: z.string().min(2).optional(),
+});
+
+export const campaignCostSchema = z.object({
+  currencyId: z.string().cuid(),
+  costType: z.enum([
+    "TRAVEL",
+    "ACCOMMODATION",
+    "BOOTH",
+    "MARKETING",
+    "ALLOWANCE",
+    "AGENCY",
+    "DIGITAL",
+    "OTHER",
+  ]),
+  description: z.string().optional().nullable(),
+  amountOriginal: z.coerce.number().nonnegative(),
+  fxRateToMyr: z.coerce.number().positive(),
+  amountMyr: z.coerce.number().nonnegative().optional(),
+  costDate: z.coerce.date().optional().nullable(),
+});

@@ -12,6 +12,10 @@ export async function audit(req, action, entity, entityId, oldValue, newValue) {
         newValue,
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"] || null,
+        sessionId:
+          req.headers["x-session-id"] ||
+          req.headers["x-request-id"] ||
+          null,
       },
     });
   } catch (e) {

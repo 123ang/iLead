@@ -25,7 +25,7 @@ export async function executiveDashboard(user) {
   });
   const campaignIds = campaignRows.map((c) => c.id);
 
-  const [campaigns, leads, applications, costs] = await Promise.all([
+  const [campaigns, leads, applications, costs, offers, enrolments] = await Promise.all([
     prisma.campaign.count({ where: cw }),
     prisma.lead.count({ where: lw }),
     prisma.application.findMany({ where: appWhere }),
@@ -34,21 +34,42 @@ export async function executiveDashboard(user) {
           where: { campaignId: { in: campaignIds } },
         })
       : Promise.resolve([]),
+    prisma.offer.count({
+      where: {
+        application: appWhere,
+      },
+    }),
+    prisma.enrolment.findMany({
+      where: {
+        OR: [
+          {
+            application: appWhere,
+          },
+          {
+            manualAttributionCampaignId: { in: campaignIds },
+          },
+        ],
+      },
+    }),
   ]);
 
   const spend = costs.reduce((s, c) => s + Number(c.amountMyr), 0);
-  const offers = applications.filter((a) =>
-    ["OFFERED", "ACCEPTED", "ENROLLED"].includes(a.applicationStatus),
-  ).length;
-  const enrolments = applications.filter(
-    (a) => a.applicationStatus === "ENROLLED",
-  ).length;
-  const tuitionRevenue = applications.reduce(
-    (s, a) => s + Number(a.tuitionRevenueMyr || 0),
+  const tuitionRevenue = enrolments.reduce(
+    (s, enrolment) => s + Number(enrolment.netTuitionMyr || 0),
     0,
   );
-  const scholarship = applications.reduce(
-    (s, a) => s + Number(a.scholarshipMyr || 0),
+  const scholarship = enrolments.reduce(
+    (s, enrolment) => s + Number(enrolment.scholarshipMyr || 0),
+    0,
+  );
+  const fullProgrammeRevenue = enrolments.reduce(
+    (s, enrolment) =>
+      s +
+      Number(
+        enrolment.revenueBasis === "FULL_PROGRAMME"
+          ? enrolment.netTuitionMyr || 0
+          : 0,
+      ),
     0,
   );
 
@@ -58,10 +79,11 @@ export async function executiveDashboard(user) {
       leads,
       applications: applications.length,
       offers,
-      enrolments,
+      enrolments: enrolments.length,
       spend,
       tuitionRevenue,
       scholarship,
+      fullProgrammeRevenue,
     }),
   };
 }
@@ -70,23 +92,17 @@ export async function recruitmentFunnel(user) {
   const appWhere = applicationWhereForDashboard(user);
   const lw = scopedLeadWhere(user);
 
-  const [leads, apps] = await Promise.all([
+  const [leads, apps, offers, enrolments] = await Promise.all([
     prisma.lead.count({ where: lw }),
     prisma.application.findMany({ where: appWhere }),
+    prisma.offer.count({ where: { application: appWhere } }),
+    prisma.enrolment.count({ where: { application: appWhere } }),
   ]);
 
   return [
     { stage: "Leads", value: leads },
     { stage: "Applications", value: apps.length },
-    {
-      stage: "Offers",
-      value: apps.filter((a) =>
-        ["OFFERED", "ACCEPTED", "ENROLLED"].includes(a.applicationStatus),
-      ).length,
-    },
-    {
-      stage: "Enrolments",
-      value: apps.filter((a) => a.applicationStatus === "ENROLLED").length,
-    },
+    { stage: "Offers", value: offers },
+    { stage: "Enrolments", value: enrolments },
   ];
 }

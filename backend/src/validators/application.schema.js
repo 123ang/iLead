@@ -35,6 +35,12 @@ export const applicationCreateSchema = z.object({
   offerDate: z.coerce.date().optional().nullable(),
   enrolmentDate: z.coerce.date().optional().nullable(),
   sourceCampaignId: z.string().cuid().optional().nullable(),
+  sourceRaw: z.string().optional().nullable(),
   scholarshipMyr: z.coerce.number().nonnegative().optional(),
   tuitionRevenueMyr: z.coerce.number().nonnegative().optional(),
+});
+
+export const applicationUpdateSchema = applicationCreateSchema.partial().extend({
+  applicantName: z.string().min(1).optional(),
+  reason: z.string().optional(),
 });

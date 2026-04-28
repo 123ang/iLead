@@ -10,8 +10,13 @@ export async function campaignRoi(campaignId, user) {
     ? scopedLeadWhere(user)
     : { deletedAt: null };
 
-  const [touches, apps, costs] = await Promise.all([
-    prisma.leadCampaignTouch.count({ where: { campaignId } }),
+  const [leadRows, apps, costs, enrolments, offers] = await Promise.all([
+    prisma.lead.findMany({
+      where: {
+        AND: [baseLead, { touches: { some: { campaignId } } }],
+      },
+      select: { id: true, leadQuality: true },
+    }),
     prisma.application.findMany({
       where: {
         deletedAt: null,
@@ -21,21 +26,48 @@ export async function campaignRoi(campaignId, user) {
       },
     }),
     prisma.campaignCost.findMany({ where: { campaignId } }),
+    prisma.enrolment.findMany({
+      where: {
+        OR: [
+          {
+            application: {
+              lead: {
+                AND: [baseLead, { touches: { some: { campaignId } } }],
+              },
+            },
+          },
+          { manualAttributionCampaignId: campaignId },
+        ],
+      },
+    }),
+    prisma.offer.count({
+      where: {
+        application: {
+          deletedAt: null,
+          lead: {
+            AND: [baseLead, { touches: { some: { campaignId } } }],
+          },
+        },
+      },
+    }),
   ]);
 
   const spend = costs.reduce((s, c) => s + Number(c.amountMyr), 0);
-  const offers = apps.filter((a) =>
-    ["OFFERED", "ACCEPTED", "ENROLLED"].includes(a.applicationStatus),
-  ).length;
-  const enrolments = apps.filter((a) => a.applicationStatus === "ENROLLED").length;
 
   return calculateRoi({
-    leads: touches,
+    leads: leadRows.length,
     applications: apps.length,
     offers,
-    enrolments,
+    enrolments: enrolments.length,
     spend,
-    tuitionRevenue: apps.reduce((s, a) => s + Number(a.tuitionRevenueMyr || 0), 0),
-    scholarship: apps.reduce((s, a) => s + Number(a.scholarshipMyr || 0), 0),
+    tuitionRevenue: enrolments.reduce((s, item) => s + Number(item.netTuitionMyr || 0), 0),
+    fullProgrammeRevenue: enrolments.reduce(
+      (s, item) =>
+        s +
+        Number(item.revenueBasis === "FULL_PROGRAMME" ? item.netTuitionMyr || 0 : 0),
+      0,
+    ),
+    scholarship: enrolments.reduce((s, item) => s + Number(item.scholarshipMyr || 0), 0),
+    qualifiedLeads,
   });
 }

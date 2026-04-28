@@ -12,10 +12,13 @@ export function calculateRoi({
   spend = 0,
   tuitionRevenue = 0,
   scholarship = 0,
+  fullProgrammeRevenue = null,
 }) {
   const netRevenue = Number(tuitionRevenue) - Number(scholarship);
   const netReturn = netRevenue - Number(spend);
   const hasSpend = Number(spend) > 0;
+  const effectiveFullProgrammeRevenue =
+    fullProgrammeRevenue == null ? Number(tuitionRevenue) : Number(fullProgrammeRevenue);
 
   return {
     totalLeads: leads,
@@ -30,11 +33,16 @@ export function calculateRoi({
     costPerApplication: safeDiv(spend, applications),
     costPerOffer: safeDiv(spend, offers),
     costPerEnrolledStudent: safeDiv(spend, enrolments),
-    tuitionRevenue,
-    scholarship,
+    tuitionRevenue: Number(tuitionRevenue),
+    fullProgrammeRevenue: effectiveFullProgrammeRevenue,
+    scholarship: Number(scholarship),
     netRevenue,
     netReturn,
     roiRatio: hasSpend ? safeDiv(netRevenue, spend) : null,
     roiPercentage: hasSpend ? safeDiv(netReturn, spend) * 100 : null,
+    fullProgrammeRoiRatio: hasSpend ? safeDiv(effectiveFullProgrammeRevenue, spend) : null,
+    fullProgrammeRoiPercentage: hasSpend
+      ? safeDiv(effectiveFullProgrammeRevenue - Number(spend), spend) * 100
+      : null,
   };
 }

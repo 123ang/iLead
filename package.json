@@ -7,7 +7,14 @@
     "build": "npm run build --workspace backend && npm run build --workspace frontend",
     "lint": "npm run lint --workspace backend && npm run lint --workspace frontend",
     "prisma:generate": "npm run prisma:generate --workspace backend",
-    "seed": "npm run seed --workspace backend"
+    "prisma:validate": "npm run prisma:validate --workspace backend",
+    "db:up": "node backend/scripts/db-up.mjs",
+    "db:down": "node backend/scripts/db-down.mjs",
+    "db:migrate": "npm run db:migrate --workspace backend",
+    "db:seed": "npm run seed --workspace backend",
+    "seed": "npm run seed --workspace backend",
+    "test": "npm run test --workspace backend",
+    "test:smoke": "npm run test:smoke --workspace backend"
   },
   "workspaces": ["backend", "frontend"],
   "devDependencies": { "concurrently": "^9.1.2" }

@@ -84,6 +84,13 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+enum OfferStatus {
+  ISSUED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
 enum CostType {
   TRAVEL
   ACCOMMODATION
@@ -100,51 +107,106 @@ enum LeadSource {
   CSV_UPLOAD
   QR_CODE
   WEBSITE
-  AGENT
-  REFERRAL
+  MANUAL_ENTRY
+  AGENT_REFERRAL
   OTHER
 }
 
+enum RevenueType {
+  SELF_FUNDED
+  SPONSORED
+  PARTIAL_SCHOLARSHIP
+  FULL_SCHOLARSHIP
+  FEE_WAIVER
+  NON_REVENUE_MOBILITY
+}
+
+enum RevenueBasis {
+  FIRST_YEAR
+  FULL_PROGRAMME
+}
+
+enum MergeStatus {
+  PENDING
+  MERGED
+  NOT_DUPLICATE
+  IGNORED
+}
+
+enum UploadType {
+  LEADS
+  APPLICATIONS
+  OFFERS
+  ENROLMENTS
+  CAMPAIGN_COSTS
+  TUITION_FEES
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum UploadRowStatus {
+  PENDING
+  VALID
+  CREATED
+  MATCHED
+  FAILED
+  CONFLICT
+  SKIPPED
+}
+
 model User {
-  id                 String         @id @default(cuid())
-  name               String
-  email              String         @unique
-  passwordHash       String?
-  role               Role
-  facultyId          String?
-  faculty            Faculty?       @relation(fields: [facultyId], references: [id])
-  isActive           Boolean        @default(true)
-  mustChangePassword Boolean        @default(false)
-  lastLoginAt        DateTime?
-  deletedAt          DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  assignedLeads      Lead[]
-  followUps          FollowUp[]
-  refreshTokens      RefreshToken[]
+  id                  String                     @id @default(cuid())
+  name                String
+  email               String                     @unique
+  passwordHash        String?
+  role                Role
+  facultyId           String?
+  faculty             Faculty?                   @relation(fields: [facultyId], references: [id])
+  isActive            Boolean                    @default(true)
+  mustChangePassword  Boolean                    @default(false)
+  lastLoginAt         DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  assignedLeads       Lead[]                     @relation("AssignedStaff")
+  followUps           FollowUp[]
+  refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  uploadBatches       UploadBatch[]
+  notifications       Notification[]
+  leadStatusChanges   LeadStatusHistory[]        @relation("ChangedByUser")
+  appStatusChanges    ApplicationStatusHistory[] @relation("AppChangedByUser")
+  mergeReviews        LeadMergeCandidate[]       @relation("MergeReviewer")
+  auditLogs           AuditLog[]                 @relation("AuditUser")
 }
 
 model RefreshToken {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }
 
 model PasswordResetToken {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }
@@ -160,6 +222,10 @@ model Country {
   campaignCountries CampaignCountry[]
   leads             Lead[]
   applications      Application[]
+  mouMoas           MouMoa[]
+  mobilityRecords   MobilityRecord[]
+  academicPeers     AcademicPeer[]
+  sponsors          Sponsor[]
 }
 
 model Faculty {
@@ -186,7 +252,9 @@ model Programme {
   campaignProgrammes CampaignProgramme[]
   tuitionFees        TuitionFee[]
   leads              Lead[]
-  applications       Application[]
+  applications       Application[]       @relation("ApplicationProgramme")
+  offers             Offer[]             @relation("OfferProgramme")
+  enrolments         Enrolment[]         @relation("EnrolmentProgramme")
 }
 
 model Currency {
@@ -200,46 +268,52 @@ model Currency {
 }
 
 model FXRate {
-  id          String   @id @default(cuid())
-  currencyId  String
-  currency    Currency @relation(fields: [currencyId], references: [id])
-  rateToMyr   Decimal
-  rateDate    DateTime
-  source      String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
+  rateToMyr  Decimal
+  rateDate   DateTime
+  source     String?
+  createdAt  DateTime @default(now())
 
   @@unique([currencyId, rateDate])
+  @@index([rateDate])
 }
 
 model Campaign {
-  id              String              @id @default(cuid())
-  name            String
-  campaignType    CampaignType
-  startDate       DateTime
-  endDate         DateTime
-  objective       String?
-  status          CampaignStatus      @default(PLANNED)
-  approvedBudgetMyr Decimal           @default(0)
-  actualSpendMyr  Decimal           @default(0)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  deletedAt       DateTime?
-  countries       CampaignCountry[]
-  faculties       CampaignFaculty[]
-  programmes      CampaignProgramme[]
-  leadTouches     LeadCampaignTouch[]
-  costs           CampaignCost[]
-  metrics         CampaignMetric[]
-  mousMoas        MouMoa[]
-  mobilityRecords MobilityRecord[]
-  academicPeers   AcademicPeer[]
-  applicationsViaSource Application[] @relation("ApplicationSourceCampaign")
+  id                String                    @id @default(cuid())
+  name              String
+  campaignType      CampaignType
+  startDate         DateTime
+  endDate           DateTime
+  objective         String?
+  status            CampaignStatus           @default(PLANNED)
+  approvedBudgetMyr Decimal                  @default(0)
+  actualSpendMyr    Decimal                  @default(0)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  deletedAt         DateTime?
+  countries         CampaignCountry[]
+  faculties         CampaignFaculty[]
+  programmes        CampaignProgramme[]
+  leadTouches       LeadCampaignTouch[]
+  costs             CampaignCost[]
+  metrics           CampaignMetric[]
+  mousMoas          MouMoa[]
+  mobilityRecords   MobilityRecord[]
+  academicPeers     AcademicPeer[]
+  sourceApplications Application[]           @relation("ApplicationSourceCampaign")
+  manualEnrolments  Enrolment[]              @relation("ManualAttribution")
+  execIncome        ExecutiveProgrammeIncome[]
+
+  @@index([status])
+  @@index([startDate])
 }
 
 model CampaignCountry {
   campaignId String
   countryId  String
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   country    Country  @relation(fields: [countryId], references: [id])
 
   @@id([campaignId, countryId])
@@ -248,7 +322,7 @@ model CampaignCountry {
 model CampaignFaculty {
   campaignId String
   facultyId  String
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   faculty    Faculty  @relation(fields: [facultyId], references: [id])
 
   @@id([campaignId, facultyId])
@@ -257,50 +331,57 @@ model CampaignFaculty {
 model CampaignProgramme {
   campaignId  String
   programmeId String
-  campaign    Campaign  @relation(fields: [campaignId], references: [id])
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   programme   Programme @relation(fields: [programmeId], references: [id])
 
   @@id([campaignId, programmeId])
 }
 
 model Lead {
-  id                    String              @id @default(cuid())
+  id                    String               @id @default(cuid())
   fullName              String
   email                 String?
   phone                 String?
   passportNumber        String?
   externalLeadId        String?
   countryId             String?
-  country               Country?            @relation(fields: [countryId], references: [id])
+  country               Country?             @relation(fields: [countryId], references: [id])
   interestedProgrammeId String?
-  interestedProgramme   Programme?          @relation(fields: [interestedProgrammeId], references: [id])
+  interestedProgramme   Programme?           @relation(fields: [interestedProgrammeId], references: [id])
   studyLevel            StudyLevel?
   leadQuality           LeadQuality          @default(WARM)
   status                LeadStatus           @default(NEW)
-  assignedStaffId       String?
-  assignedStaff         User?                @relation(fields: [assignedStaffId], references: [id])
-  assignedAt            DateTime?
   source                LeadSource?
+  assignedStaffId       String?
+  assignedStaff         User?                @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  assignedAt            DateTime?
   notes                 String?
+  uploadBatchId         String?
+  uploadBatch           UploadBatch?         @relation(fields: [uploadBatchId], references: [id])
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   deletedAt             DateTime?
   touches               LeadCampaignTouch[]
   followUps             FollowUp[]
   applications          Application[]
+  statusHistory         LeadStatusHistory[]
+  mergeAsA              LeadMergeCandidate[] @relation("MergeLeadA")
+  mergeAsB              LeadMergeCandidate[] @relation("MergeLeadB")
+  uploadRows            UploadBatchRow[]
 
+  @@index([status])
+  @@index([assignedStaffId])
   @@index([email])
   @@index([phone])
-  @@index([assignedStaffId])
-  @@index([status])
+  @@index([passportNumber])
 }
 
 model LeadCampaignTouch {
   id         String     @id @default(cuid())
   leadId     String
-  lead       Lead       @relation(fields: [leadId], references: [id])
+  lead       Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
   campaignId String
-  campaign   Campaign   @relation(fields: [campaignId], references: [id])
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   source     LeadSource @default(EVENT_FORM)
   capturedAt DateTime   @default(now())
   sourceNote String?
@@ -311,19 +392,43 @@ model LeadCampaignTouch {
 }
 
 model LeadMergeCandidate {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   leadAId    String
+  leadA      Lead        @relation("MergeLeadA", fields: [leadAId], references: [id], onDelete: Cascade)
   leadBId    String
+  leadB      Lead        @relation("MergeLeadB", fields: [leadBId], references: [id], onDelete: Cascade)
   confidence Decimal
   reason     String
-  status     String   @default("PENDING")
-  createdAt  DateTime @default(now())
+  status     MergeStatus @default(PENDING)
+  reviewedBy String?
+  reviewer   User?       @relation("MergeReviewer", fields: [reviewedBy], references: [id])
+  reviewedAt DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([status])
+  @@index([leadAId])
+  @@index([leadBId])
+}
+
+model LeadStatusHistory {
+  id          String     @id @default(cuid())
+  leadId      String
+  lead        Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromStatus  LeadStatus?
+  toStatus    LeadStatus
+  changedById String?
+  changedBy   User?      @relation("ChangedByUser", fields: [changedById], references: [id])
+  reason      String?
+  changedAt   DateTime   @default(now())
+
+  @@index([leadId])
+  @@index([changedAt])
 }
 
 model FollowUp {
   id               String       @id @default(cuid())
   leadId           String
-  lead             Lead         @relation(fields: [leadId], references: [id])
+  lead             Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
   staffId          String
   staff            User         @relation(fields: [staffId], references: [id])
   followUpType     FollowUpType
@@ -332,41 +437,108 @@ model FollowUp {
   outcome          String?
   notes            String?
   createdAt        DateTime     @default(now())
+
+  @@index([leadId])
+  @@index([staffId])
+  @@index([nextFollowUpDate])
 }
 
 model Application {
-  id                String            @id @default(cuid())
+  id                String                     @id @default(cuid())
   leadId            String?
-  lead              Lead?             @relation(fields: [leadId], references: [id])
+  lead              Lead?                      @relation(fields: [leadId], references: [id])
   applicantName     String
   email             String?
   phone             String?
   passportNumber    String?
   countryId         String?
-  country           Country?          @relation(fields: [countryId], references: [id])
+  country           Country?                   @relation(fields: [countryId], references: [id])
   programmeId       String?
-  programme         Programme?        @relation(fields: [programmeId], references: [id])
+  programme         Programme?                 @relation("ApplicationProgramme", fields: [programmeId], references: [id])
   studyLevel        StudyLevel?
-  applicationStatus ApplicationStatus @default(APPLIED)
+  applicationStatus ApplicationStatus          @default(APPLIED)
   applicationDate   DateTime?
   offerDate         DateTime?
   enrolmentDate     DateTime?
   sourceCampaignId  String?
-  sourceCampaign    Campaign?         @relation("ApplicationSourceCampaign", fields: [sourceCampaignId], references: [id])
-  scholarshipMyr    Decimal           @default(0)
-  tuitionRevenueMyr Decimal           @default(0)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  sourceCampaign    Campaign?                  @relation("ApplicationSourceCampaign", fields: [sourceCampaignId], references: [id])
+  sourceRaw         String?
+  uploadBatchId     String?
+  uploadBatch       UploadBatch?               @relation(fields: [uploadBatchId], references: [id])
+  scholarshipMyr    Decimal                    @default(0)
+  tuitionRevenueMyr Decimal                    @default(0)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
   deletedAt         DateTime?
+  offers            Offer[]
+  enrolments        Enrolment[]
+  statusHistory     ApplicationStatusHistory[]
+  uploadRows        UploadBatchRow[]
 
   @@index([leadId])
-  @@index([applicationStatus])
+  @@index([programmeId, applicationStatus])
+  @@index([passportNumber])
+  @@index([email])
+}
+
+model ApplicationStatusHistory {
+  id            String            @id @default(cuid())
+  applicationId String
+  application   Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  changedById   String?
+  changedBy     User?             @relation("AppChangedByUser", fields: [changedById], references: [id])
+  reason        String?
+  changedAt     DateTime          @default(now())
+
+  @@index([applicationId])
+}
+
+model Offer {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  programmeId   String?
+  programme     Programme?  @relation("OfferProgramme", fields: [programmeId], references: [id])
+  offerDate     DateTime
+  status        OfferStatus @default(ISSUED)
+  expiresAt     DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
+  @@index([status])
+}
+
+model Enrolment {
+  id                          String       @id @default(cuid())
+  applicationId               String
+  application                 Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  programmeId                 String?
+  programme                   Programme?   @relation("EnrolmentProgramme", fields: [programmeId], references: [id])
+  enrolmentDate               DateTime
+  revenueType                 RevenueType  @default(SELF_FUNDED)
+  scholarshipId               String?
+  scholarship                 Scholarship? @relation(fields: [scholarshipId], references: [id])
+  sponsorId                   String?
+  sponsor                     Sponsor?     @relation(fields: [sponsorId], references: [id])
+  grossTuitionMyr             Decimal      @default(0)
+  scholarshipMyr              Decimal      @default(0)
+  netTuitionMyr               Decimal      @default(0)
+  revenueBasis                RevenueBasis @default(FIRST_YEAR)
+  manualAttributionCampaignId String?
+  manualAttributionCampaign   Campaign?    @relation("ManualAttribution", fields: [manualAttributionCampaignId], references: [id])
+  createdAt                   DateTime     @default(now())
+
+  @@index([applicationId])
+  @@index([enrolmentDate])
+  @@index([revenueType])
 }
 
 model CampaignCost {
   id             String   @id @default(cuid())
   campaignId     String
-  campaign       Campaign @relation(fields: [campaignId], references: [id])
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   currencyId     String
   currency       Currency @relation(fields: [currencyId], references: [id])
   costType       CostType
@@ -376,31 +548,48 @@ model CampaignCost {
   amountMyr      Decimal  @default(0)
   costDate       DateTime @default(now())
   createdAt      DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([costDate])
 }
 
 model TuitionFee {
-  id           String     @id @default(cuid())
-  programmeId  String
-  programme    Programme  @relation(fields: [programmeId], references: [id])
-  studyLevel   StudyLevel
-  amountMyr    Decimal
-  academicYear String
-  isActive     Boolean    @default(true)
-  createdAt    DateTime   @default(now())
+  id                  String     @id @default(cuid())
+  programmeId         String
+  programme           Programme  @relation(fields: [programmeId], references: [id])
+  studyLevel          StudyLevel
+  amountMyr           Decimal
+  academicYear        String
+  annualFeeMyr        Decimal?
+  fullProgrammeFeeMyr Decimal?
+  effectiveFrom       DateTime?
+  effectiveTo         DateTime?
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+
+  @@index([programmeId, academicYear])
 }
 
 model Scholarship {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
   name            String
+  type            String?
   discountPercent Decimal?
   amountMyr       Decimal?
-  isActive        Boolean  @default(true)
+  valueMyr        Decimal?
+  isPercent       Boolean     @default(false)
+  isActive        Boolean     @default(true)
+  enrolments      Enrolment[]
 }
 
 model Sponsor {
-  id       String  @id @default(cuid())
-  name     String
-  isActive Boolean @default(true)
+  id         String       @id @default(cuid())
+  name       String
+  countryId  String?
+  country    Country?     @relation(fields: [countryId], references: [id])
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  enrolments Enrolment[]
 }
 
 model MouMoa {
@@ -408,10 +597,12 @@ model MouMoa {
   campaignId  String?
   campaign    Campaign? @relation(fields: [campaignId], references: [id])
   institution String
-  country     String
+  countryId   String?
+  country     Country?  @relation(fields: [countryId], references: [id])
   type        String
   status      String
   signedDate  DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 model MobilityRecord {
@@ -419,9 +610,11 @@ model MobilityRecord {
   campaignId   String?
   campaign     Campaign? @relation(fields: [campaignId], references: [id])
   institution  String
-  country      String
+  countryId    String?
+  country      Country?  @relation(fields: [countryId], references: [id])
   studentCount Int       @default(0)
   mobilityType String
+  createdAt    DateTime  @default(now())
 }
 
 model AcademicPeer {
@@ -430,41 +623,112 @@ model AcademicPeer {
   campaign    Campaign? @relation(fields: [campaignId], references: [id])
   name        String
   institution String
-  country     String
+  countryId   String?
+  country     Country?  @relation(fields: [countryId], references: [id])
   email       String?
+  createdAt   DateTime  @default(now())
+}
+
+model ExecutiveProgrammeIncome {
+  id            String    @id @default(cuid())
+  campaignId    String?
+  campaign      Campaign? @relation(fields: [campaignId], references: [id])
+  programmeName String
+  amountMyr     Decimal   @default(0)
+  incomeDate    DateTime
+  description   String?
+  createdAt     DateTime  @default(now())
 }
 
 model CampaignMetric {
-  id                String   @id @default(cuid())
-  campaignId        String
-  campaign          Campaign @relation(fields: [campaignId], references: [id])
-  metricDate        DateTime
-  totalLeads        Int      @default(0)
-  totalApplications Int      @default(0)
-  totalOffers       Int      @default(0)
-  totalEnrolments   Int      @default(0)
-  actualSpendMyr    Decimal  @default(0)
-  tuitionRevenueMyr Decimal  @default(0)
-  netRevenueMyr     Decimal  @default(0)
-  roiRatio          Decimal  @default(0)
-  roiPercentage     Decimal  @default(0)
-  createdAt         DateTime @default(now())
+  id                        String   @id @default(cuid())
+  campaignId                String
+  campaign                  Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  metricDate                DateTime
+  totalLeads                Int      @default(0)
+  qualifiedLeads            Int      @default(0)
+  totalApplications         Int      @default(0)
+  totalOffers               Int      @default(0)
+  totalEnrolments           Int      @default(0)
+  actualSpendMyr            Decimal  @default(0)
+  firstYearRevenueMyr       Decimal  @default(0)
+  fullProgrammeRevenueMyr   Decimal  @default(0)
+  netRevenueMyr             Decimal  @default(0)
+  costPerLeadMyr            Decimal  @default(0)
+  costPerEnrolledStudentMyr Decimal  @default(0)
+  conversionRate            Decimal  @default(0)
+  roiRatio                  Decimal  @default(0)
+  roiPercentage             Decimal  @default(0)
+  refreshedAt               DateTime @default(now())
 
   @@unique([campaignId, metricDate])
+  @@index([campaignId])
+  @@index([metricDate])
 }
 
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String?
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  type      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model UploadBatch {
+  id           String         @id @default(cuid())
+  type         UploadType
+  fileName     String
+  uploadedBy   String
+  uploader     User           @relation(fields: [uploadedBy], references: [id])
+  totalRows    Int            @default(0)
+  successRows  Int            @default(0)
+  failedRows   Int            @default(0)
+  errorLog     Json?
+  status       UploadStatus   @default(PENDING)
+  createdAt    DateTime       @default(now())
+  completedAt  DateTime?
+  leads        Lead[]
+  applications Application[]
+  rows         UploadBatchRow[]
+
+  @@index([uploadedBy])
+  @@index([status])
+}
+
+model UploadBatchRow {
+  id            String          @id @default(cuid())
+  uploadBatchId String
+  uploadBatch   UploadBatch     @relation(fields: [uploadBatchId], references: [id], onDelete: Cascade)
+  rowNumber     Int
+  rawData       Json
+  normalizedData Json?
+  status        UploadRowStatus @default(PENDING)
+  errors        Json?
+  result        Json?
+  leadId        String?
+  lead          Lead?           @relation(fields: [leadId], references: [id])
+  applicationId String?
+  application   Application?    @relation(fields: [applicationId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([uploadBatchId, rowNumber])
+  @@index([status])
+  @@index([leadId])
+  @@index([applicationId])
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String?
+  user      User?    @relation("AuditUser", fields: [userId], references: [id])
   action    String
   entity    String
   entityId  String?
@@ -474,6 +738,11 @@ model AuditLog {
   userAgent String?
   sessionId String?
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model SystemSetting {

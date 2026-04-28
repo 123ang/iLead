@@ -46,34 +46,34 @@ Legend:
 - [x] Implement `SystemSetting` table.
 - [x] Implement audit log table.
 - [x] Add committed Prisma migration files.
-- [~] Add `Campaign.actualSpendMyr` field; still needs automatic refresh on cost writes.
-- [ ] Add explicit Offer and Enrolment tables if still required by final doc after current Application-status simplification review.
-- [ ] Add `LeadStatusHistory` and `ApplicationStatusHistory` if still required by final doc.
-- [ ] Add `UploadBatch` table and upload-row audit/rollback support.
-- [ ] Add `ExecutiveProgrammeIncome` table.
-- [ ] Add manual attribution support for unmatched enrolments/campaigns.
-- [ ] Add database indexes for reporting performance after real query review.
+- [x] Add `Campaign.actualSpendMyr` field; still needs automatic refresh on cost writes.
+- [~] Add explicit Offer and Enrolment tables if still required by final doc after current Application-status simplification review.
+- [~] Add `LeadStatusHistory` and `ApplicationStatusHistory` if still required by final doc.
+- [~] Add `UploadBatch` table and upload-row audit/rollback support.
+- [~] Add `ExecutiveProgrammeIncome` table.
+- [~] Add manual attribution support for unmatched enrolments/campaigns.
+- [~] Add database indexes for reporting performance after real query review.
 
 ---
 
 ## 2. Seed data
 
 - [~] Seed script exists with basic fake non-PII data.
-- [ ] Seed exactly/spec-compliant: 8 countries.
-- [ ] Seed exactly/spec-compliant: 5 faculties.
-- [ ] Seed exactly/spec-compliant: 25 programmes.
-- [ ] Seed currencies and FX rates for required currencies/months.
-- [ ] Seed 30 tuition fees.
-- [ ] Seed 1 SUPER_ADMIN, 2 MANAGEMENT, 3 CIAC_ADMIN, 5 FACULTY_DEAN, 10 STAFF, 1 REGISTRAR, 1 FINANCE.
-- [ ] Seed 10 campaigns including 3 umbrella campaigns.
-- [ ] Seed 2 high-ROI campaigns, 2 low-ROI campaigns, and 1 scholarship-heavy campaign.
-- [ ] Seed 50–200 leads per campaign.
-- [ ] Seed cross-campaign touches for duplicate/repeated students.
-- [ ] Seed 30% lead→application, 60% application→offer, 50% offer→enrolment funnel.
-- [ ] Seed 20% scholarship/sponsored enrolments.
-- [ ] Seed 20 MoUs/MoAs, 15 mobility records, 10 academic peers, 5 executive programme incomes.
-- [ ] Seed all default `SystemSetting` keys.
-- [ ] Verify seed is idempotent or safely resettable.
+- [~] Seed exactly/spec-compliant: 8 countries.
+- [~] Seed exactly/spec-compliant: 5 faculties.
+- [~] Seed exactly/spec-compliant: 25 programmes.
+- [~] Seed currencies and FX rates for required currencies/months.
+- [~] Seed 30 tuition fees.
+- [~] Seed 1 SUPER_ADMIN, 2 MANAGEMENT, 3 CIAC_ADMIN, 5 FACULTY_DEAN, 10 STAFF, 1 REGISTRAR, 1 FINANCE.
+- [~] Seed 10 campaigns including 3 umbrella campaigns.
+- [~] Seed 2 high-ROI campaigns, 2 low-ROI campaigns, and 1 scholarship-heavy campaign.
+- [~] Seed 50–200 leads per campaign.
+- [~] Seed cross-campaign touches for duplicate/repeated students.
+- [~] Seed 30% lead→application, 60% application→offer, 50% offer→enrolment funnel.
+- [~] Seed 20% scholarship/sponsored enrolments.
+- [~] Seed 20 MoUs/MoAs, 15 mobility records, 10 academic peers, 5 executive programme incomes.
+- [~] Seed all default `SystemSetting` keys.
+- [~] Verify seed is idempotent or safely resettable.
 
 ---
 
@@ -119,9 +119,9 @@ Legend:
 - [x] Campaign detail endpoint exists.
 - [x] Campaign soft delete endpoint exists.
 - [x] Campaign ROI endpoint exists.
-- [ ] Implement campaign update endpoint including country/faculty/programme mappings.
-- [ ] Implement campaign cost CRUD.
-- [ ] Automatically refresh `Campaign.actualSpendMyr` from `CampaignCost.amountMyr` on cost write/delete.
+- [~] Implement campaign update endpoint including country/faculty/programme mappings.
+- [~] Implement campaign cost CRUD.
+- [~] Automatically refresh `Campaign.actualSpendMyr` from `CampaignCost.amountMyr` on cost write/delete.
 - [ ] Implement campaign performance endpoint with funnel, costs, revenue, and recommendations.
 - [ ] Implement role-specific campaign visibility completely.
 - [ ] Add tests for campaign CRUD, many-to-many mapping, ROI, and permissions.
@@ -137,10 +137,10 @@ Legend:
 - [x] Lead soft delete endpoint exists.
 - [x] Lead create validates at least one identifier.
 - [x] Follow-up list/create/overdue endpoints exist.
-- [ ] Implement lead update endpoint.
-- [ ] Implement lead assign endpoint.
-- [ ] Implement lead status history.
-- [ ] Implement robust overdue SLA calculation using HOT/WARM/COLD settings in MYT.
+- [~] Implement lead update endpoint.
+- [~] Implement lead assign endpoint.
+- [~] Implement lead status history.
+- [~] Implement robust overdue SLA calculation using HOT/WARM/COLD settings in MYT.
 - [ ] Implement staff-specific lead visibility and assignment rules.
 - [ ] Implement in-app notifications for assignment and overdue follow-ups.
 - [ ] Add tests for lead validation, assignment, SLA, status transitions, and permissions.
@@ -150,12 +150,12 @@ Legend:
 ## 7. Backend API — deduplication
 
 - [~] Duplicate queue route exists.
-- [ ] Implement exact duplicate detection: email.
-- [ ] Implement exact duplicate detection: phone.
-- [ ] Implement exact duplicate detection: passport.
-- [ ] Implement possible duplicate detection: same name + country + programme.
-- [ ] Implement manual merge queue actions: accept/link, reject, mark reviewed.
-- [ ] Ensure accepted duplicates use `LeadCampaignTouch`, not duplicate lead rows.
+- [~] Implement exact duplicate detection: email.
+- [~] Implement exact duplicate detection: phone.
+- [~] Implement exact duplicate detection: passport.
+- [~] Implement possible duplicate detection: same name + country + programme.
+- [~] Implement manual merge queue actions: accept/link, reject, mark reviewed.
+- [~] Ensure accepted duplicates use `LeadCampaignTouch`, not duplicate lead rows.
 - [ ] Add duplicate report endpoint.
 - [ ] Add tests for exact/fuzzy duplicate detection and merge behavior.
 
@@ -168,14 +168,14 @@ Legend:
 - [x] Unmatched application endpoint exists.
 - [~] Upload endpoint exists but is only placeholder.
 - [~] Match-leads endpoint exists but is only placeholder.
-- [ ] Implement application update endpoint.
-- [ ] Implement CSV/XLSX upload parsing.
-- [ ] Implement upload validation report with row-level errors.
-- [ ] Implement `UploadBatch` audit and rollback.
-- [ ] Implement lead matching priority: email, phone, passport, name+programme+country, source campaign.
-- [ ] Implement conflict/manual-review queue.
-- [ ] Implement offer/enrolment workflow or explicit tables per final schema decision.
-- [ ] Implement scholarship-adjusted revenue calculation.
+- [~] Implement application update endpoint.
+- [~] Implement CSV/XLSX upload parsing.
+- [~] Implement upload validation report with row-level errors.
+- [~] Implement `UploadBatch` audit and rollback.
+- [~] Implement lead matching priority: email, phone, passport, name+programme+country, source campaign.
+- [~] Implement conflict/manual-review queue.
+- [~] Implement offer/enrolment workflow or explicit tables per final schema decision.
+- [~] Implement scholarship-adjusted revenue calculation.
 - [ ] Add tests for upload validation, matching, conflict review, and revenue calculation.
 
 ---
@@ -229,15 +229,15 @@ Legend:
 - [~] Lead list uses backend API but lacks real actions/forms.
 - [~] Settings/users/audit pages use generic list views only.
 - [ ] Implement Campaign list filters/search/pagination.
-- [ ] Implement Campaign create/edit form with multi-country/faculty/programme selection.
-- [ ] Implement Campaign detail page with funnel, costs, ROI, leads, applications.
-- [ ] Implement Campaign cost form.
+- [~] Implement Campaign create/edit form with multi-country/faculty/programme selection.
+- [~] Implement Campaign detail page with funnel, costs, ROI, leads, applications.
+- [~] Implement Campaign cost form.
 - [ ] Implement Lead list filters/search/pagination.
-- [ ] Implement Lead create/edit form.
-- [ ] Implement Lead detail page with campaign touches, follow-ups, applications.
+- [~] Implement Lead create/edit form.
+- [~] Implement Lead detail page with campaign touches, follow-ups, applications.
 - [ ] Implement Follow-up create/edit UI and overdue queue.
-- [ ] Implement Duplicate Leads page with merge/reject actions.
-- [ ] Implement Application upload page with file upload, column mapping, validation preview.
+- [~] Implement Duplicate Leads page with merge/reject actions.
+- [~] Implement Application upload page with file upload, column mapping, validation preview.
 - [ ] Implement Match Conflicts page.
 - [ ] Implement Reports pages with charts and export buttons.
 - [ ] Implement Master Data CRUD pages.
@@ -268,9 +268,9 @@ Legend:
 - [x] Frontend production build passes.
 - [x] Prisma schema validation passes.
 - [~] Smoke test script exists but still needs real DB runtime execution.
-- [ ] Add automated unit test framework.
-- [ ] Unit tests: ROI formulas.
-- [ ] Unit tests: SLA overdue calculation.
+- [x] Add automated unit test framework.
+- [x] Unit tests: ROI formulas.
+- [x] Unit tests: SLA overdue calculation.
 - [ ] Unit tests: currency FX conversion and frozen MYR amounts.
 - [ ] Integration tests: auth and RBAC.
 - [ ] Integration tests: lead validation and dedupe.
