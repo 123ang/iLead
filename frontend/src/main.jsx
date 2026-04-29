@@ -16,7 +16,6 @@ import { AppLayout } from "./components/layout/AppLayout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import ListPage from "./pages/ListPage.jsx";
-import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 import CampaignsPage from "./pages/CampaignsPage.jsx";
 import CampaignDetailPage from "./pages/CampaignDetailPage.jsx";
@@ -25,6 +24,8 @@ import LeadDetailPage from "./pages/LeadDetailPage.jsx";
 import DuplicatesPage from "./pages/DuplicatesPage.jsx";
 import ApplicationUploadPage from "./pages/ApplicationUploadPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
+import MasterDataPage from "./pages/MasterDataPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
 
 const qc = new QueryClient();
 
@@ -71,10 +72,10 @@ function AppRoutes() {
             />
             <Route
               path="master-data"
-              element={<PlaceholderPage title="Master Data" />}
+              element={<MasterDataPage />}
             />
             <Route path="users" element={<ListPage title="Users" endpoint="/users" />} />
-            <Route path="settings" element={<ListPage title="Settings" endpoint="/settings" />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="audit-logs" element={<ListPage title="Audit Logs" endpoint="/audit-logs" />} />
           </Route>
         </Route>

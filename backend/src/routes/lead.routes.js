@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../config/db.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireRole } from "../middleware/role.middleware.js";
 import {
   leadAssignSchema,
   leadCreateSchema,

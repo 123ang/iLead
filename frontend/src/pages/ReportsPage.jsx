@@ -3,6 +3,8 @@ import { Download, RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Card } from "../components/ui/Card.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { PageHeader, Toolbar } from "../components/ui/PageHeader.jsx";
 import { api } from "../services/api.js";
 
 const REPORTS = [
@@ -122,10 +124,15 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-5">
-      <Card title="Reports">
-        <div className="grid gap-3 lg:grid-cols-[1fr,1fr,1fr,1fr,auto,auto]">
+      <PageHeader
+        eyebrow="Management Reporting"
+        title="Reports"
+        description="Run operational reports, export CSV files, and refresh campaign metric snapshots."
+      />
+      <Toolbar>
+        <div className="grid w-full gap-3 lg:grid-cols-[1fr,1fr,1fr,1fr,auto,auto]">
           <select
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             value={reportKey}
             onChange={(event) => setRouteState({ report: event.target.value })}
           >
@@ -136,39 +143,38 @@ export default function ReportsPage() {
             ))}
           </select>
           <input
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             placeholder="Search table"
             value={filters.q}
             onChange={(event) => setRouteState({ q: event.target.value })}
           />
           <input
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             type="date"
             value={filters.from}
             onChange={(event) => setRouteState({ from: event.target.value })}
           />
           <input
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             type="date"
             value={filters.to}
             onChange={(event) => setRouteState({ to: event.target.value })}
           />
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded bg-slate-800 px-3 py-2 text-sm text-white"
+          <Button
             onClick={() => refresh.mutate()}
             type="button"
+            variant="secondary"
           >
             <RefreshCw size={16} /> Refresh Metrics
-          </button>
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded bg-uum-blue px-3 py-2 text-sm text-white"
+          </Button>
+          <Button
             onClick={exportCsv}
             type="button"
           >
             <Download size={16} /> CSV
-          </button>
+          </Button>
         </div>
-      </Card>
+      </Toolbar>
 
       <Summary data={data} />
 
@@ -179,10 +185,11 @@ export default function ReportsPage() {
           <p className="text-sm text-slate-500">No rows match the current filters.</p>
         ) : null}
         {rows.length ? (
-          <div className="overflow-auto">
+          <div className="overflow-hidden rounded-md border border-slate-200">
+            <div className="overflow-auto">
             <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b text-left text-slate-500">
+              <thead className="bg-slate-50">
+                <tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500">
                   {headers.map((header) => (
                     <th key={header} className="whitespace-nowrap py-2 pr-4">
                       {title(header)}
@@ -202,6 +209,7 @@ export default function ReportsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : null}
       </Card>

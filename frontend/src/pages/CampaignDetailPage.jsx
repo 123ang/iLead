@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { Card } from "../components/ui/Card.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog.jsx";
+import { PageHeader } from "../components/ui/PageHeader.jsx";
+import { StatusPill } from "../components/ui/Badge.jsx";
 import { api } from "../services/api.js";
 
 export default function CampaignDetailPage() {
@@ -15,6 +19,7 @@ export default function CampaignDetailPage() {
     description: "",
     costDate: "",
   });
+  const [deleteCostTarget, setDeleteCostTarget] = useState(null);
 
   const { data: campaign } = useQuery({
     queryKey: ["campaign", id],
@@ -42,22 +47,46 @@ export default function CampaignDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaign", id] });
       qc.invalidateQueries({ queryKey: ["campaign-roi", id] });
+      setDeleteCostTarget(null);
     },
   });
 
-  if (!campaign) return <p>Loading...</p>;
+  if (!campaign) return <p className="text-sm text-slate-500">Loading campaign...</p>;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr,0.9fr]">
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Campaign Portfolio"
+        title={campaign.name}
+        description="Campaign performance, spend records, and ROI summary."
+      />
+      <div className="grid gap-6 xl:grid-cols-[1fr,0.9fr]">
       <Card title={campaign.name}>
-        <div className="grid gap-2 text-sm">
-          <p>Type: {campaign.campaignType}</p>
-          <p>Budget: MYR {Number(campaign.approvedBudgetMyr || 0).toFixed(2)}</p>
-          <p>Actual spend: MYR {Number(campaign.actualSpendMyr || 0).toFixed(2)}</p>
-          <p>Leads: {roi?.totalLeads ?? 0}</p>
-          <p>Applications: {roi?.totalApplications ?? 0}</p>
-          <p>Enrolments: {roi?.totalEnrolments ?? 0}</p>
-          <p>ROI: {roi?.roiRatio == null ? "n/a" : `${Number(roi.roiRatio).toFixed(2)}x`}</p>
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Type</div>
+            <div className="mt-1 font-semibold text-uum-navy">{campaign.campaignType.replaceAll("_", " ")}</div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Status</div>
+            <div className="mt-1"><StatusPill value={campaign.status} /></div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Budget</div>
+            <div className="mt-1 font-semibold text-uum-navy">MYR {Number(campaign.approvedBudgetMyr || 0).toFixed(2)}</div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Actual spend</div>
+            <div className="mt-1 font-semibold text-uum-navy">MYR {Number(campaign.actualSpendMyr || 0).toFixed(2)}</div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Funnel</div>
+            <div className="mt-1 font-semibold text-uum-navy">{roi?.totalLeads ?? 0} leads / {roi?.totalApplications ?? 0} applications / {roi?.totalEnrolments ?? 0} enrolments</div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">ROI</div>
+            <div className="mt-1 font-semibold text-uum-navy">{roi?.roiRatio == null ? "n/a" : `${Number(roi.roiRatio).toFixed(2)}x`}</div>
+          </div>
         </div>
         <div className="mt-4 overflow-auto">
           <table className="w-full text-sm">
@@ -74,12 +103,13 @@ export default function CampaignDetailPage() {
                   <td className="py-2">{cost.description || cost.costType}</td>
                   <td className="py-2">{Number(cost.amountMyr).toFixed(2)}</td>
                   <td className="py-2 text-right">
-                    <button
-                      className="rounded border px-2 py-1 text-xs"
-                      onClick={() => deleteCost.mutate(cost.id)}
+                    <Button
+                      className="px-2 py-1 text-xs"
+                      onClick={() => setDeleteCostTarget(cost)}
+                      variant="secondary"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -102,7 +132,7 @@ export default function CampaignDetailPage() {
           }}
         >
           <select
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             value={costForm.currencyId}
             onChange={(event) =>
               setCostForm((current) => ({ ...current, currencyId: event.target.value }))
@@ -116,7 +146,7 @@ export default function CampaignDetailPage() {
             ))}
           </select>
           <select
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             value={costForm.costType}
             onChange={(event) =>
               setCostForm((current) => ({ ...current, costType: event.target.value }))
@@ -131,7 +161,7 @@ export default function CampaignDetailPage() {
             )}
           </select>
           <input
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             type="number"
             min="0"
             placeholder="Original amount"
@@ -141,7 +171,7 @@ export default function CampaignDetailPage() {
             }
           />
           <input
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             type="number"
             min="0.0001"
             step="0.0001"
@@ -152,7 +182,7 @@ export default function CampaignDetailPage() {
             }
           />
           <input
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             type="date"
             value={costForm.costDate}
             onChange={(event) =>
@@ -160,7 +190,7 @@ export default function CampaignDetailPage() {
             }
           />
           <textarea
-            className="rounded border border-slate-300 p-2"
+            className="field-control"
             rows={3}
             placeholder="Description"
             value={costForm.description}
@@ -168,12 +198,25 @@ export default function CampaignDetailPage() {
               setCostForm((current) => ({ ...current, description: event.target.value }))
             }
           />
-          <button className="rounded bg-uum-blue px-4 py-2 text-white" type="submit">
+          <Button type="submit">
             Save Cost
-          </button>
+          </Button>
         </form>
       </Card>
+      </div>
+      <ConfirmDialog
+        busy={deleteCost.isPending}
+        confirmLabel="Delete Cost"
+        description={
+          deleteCostTarget
+            ? `This will permanently delete "${deleteCostTarget.description || deleteCostTarget.costType}" and refresh campaign spend.`
+            : ""
+        }
+        onCancel={() => setDeleteCostTarget(null)}
+        onConfirm={() => deleteCost.mutate(deleteCostTarget.id)}
+        open={Boolean(deleteCostTarget)}
+        title="Delete campaign cost?"
+      />
     </div>
   );
 }
-

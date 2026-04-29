@@ -11,6 +11,7 @@ import {
 import { api } from "../services/api.js";
 import { StatCard } from "../components/dashboard/StatCard.jsx";
 import { Card } from "../components/ui/Card.jsx";
+import { PageHeader } from "../components/ui/PageHeader.jsx";
 
 function formatRoi(val) {
   if (val == null || val === "") return "n/a";
@@ -31,6 +32,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        eyebrow="Executive Overview"
+        title="Dashboard"
+        description="Recruitment portfolio totals, enrolment outcomes, and funnel progression for management review."
+      />
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Campaigns" value={data.campaigns} />
         <StatCard label="Leads" value={data.totalLeads} />

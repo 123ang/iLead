@@ -211,7 +211,7 @@ Legend:
 - [x] Protected routes implemented.
 - [x] Must-change-password page implemented.
 - [x] Sidebar layout implemented.
-- [x] Role-filtered nav partially implemented.
+- [x] Role-filtered nav implemented for current route set.
 - [ ] Add forgot password page.
 - [ ] Add reset password page.
 - [~] Add logout button and session expiry UX.
@@ -225,26 +225,26 @@ Legend:
 
 - [x] Dashboard page exists with stat cards and funnel chart.
 - [x] Generic list page exists.
-- [~] Campaign list uses backend API but lacks real actions/forms.
-- [~] Lead list uses backend API but lacks real actions/forms.
-- [~] Settings/users/audit pages use generic list views only.
-- [ ] Implement Campaign list filters/search/pagination.
-- [~] Implement Campaign create/edit form with multi-country/faculty/programme selection.
+- [x] Campaign list uses backend API with create/edit/delete actions.
+- [x] Lead list uses backend API with create/edit/delete actions.
+- [~] Settings/users/audit pages use consistent executive portal views; settings edit is supported for `SUPER_ADMIN`, users/audit remain backend read-only.
+- [~] Implement Campaign list filters/search/pagination. Search/status/type filters are implemented client-side; server pagination/search is not implemented.
+- [x] Implement Campaign create/edit form with multi-country/faculty/programme selection.
 - [~] Implement Campaign detail page with funnel, costs, ROI, leads, applications.
-- [~] Implement Campaign cost form.
-- [ ] Implement Lead list filters/search/pagination.
-- [~] Implement Lead create/edit form.
-- [~] Implement Lead detail page with campaign touches, follow-ups, applications.
-- [ ] Implement Follow-up create/edit UI and overdue queue.
-- [~] Implement Duplicate Leads page with merge/reject actions.
-- [~] Implement Application upload page with file upload, column mapping, validation preview.
+- [~] Implement Campaign cost form. Create and delete are implemented; update is backend-supported but not yet exposed in the UI.
+- [~] Implement Lead list filters/search/pagination. Search/status/quality filters are implemented client-side; server pagination/search is not implemented.
+- [x] Implement Lead create/edit form.
+- [x] Implement Lead detail page with campaign touches, follow-ups, applications.
+- [~] Implement Follow-up create/edit UI and overdue queue. Follow-up creation is implemented on lead detail; edit and overdue queue UI are not implemented.
+- [~] Implement Duplicate Leads page with merge/reject actions and executive portal styling.
+- [~] Implement Application upload page with file upload, column mapping, validation preview. Upload/rematch/result preview are implemented; column mapping is not implemented.
 - [ ] Implement Match Conflicts page.
 - [x] Implement Reports page with URL-backed filters, report tables, CSV export buttons, and metric refresh action.
-- [ ] Implement Master Data CRUD pages.
-- [ ] Implement User Management CRUD page.
-- [ ] Implement Settings edit page.
-- [ ] Implement Audit Logs filtering page.
-- [ ] Add responsive/mobile-friendly UI polish.
+- [~] Implement Master Data CRUD pages. Read/create are implemented for backend-supported master data endpoints; edit/delete are disabled with notices because backend endpoints are missing.
+- [~] Implement User Management CRUD page. Read-only executive portal table is implemented; backend create/update/delete endpoints are missing.
+- [x] Implement Settings edit page.
+- [~] Implement Audit Logs filtering page. Client-side search is implemented; server filters are not implemented.
+- [x] Add responsive/mobile-friendly UI polish for current executive portal pass.
 - [ ] Add frontend component/integration tests.
 
 ---

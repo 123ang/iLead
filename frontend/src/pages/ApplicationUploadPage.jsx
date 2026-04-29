@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card } from "../components/ui/Card.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { PageHeader } from "../components/ui/PageHeader.jsx";
+import { StatusPill } from "../components/ui/Badge.jsx";
 import { api } from "../services/api.js";
 
 export default function ApplicationUploadPage() {
@@ -27,7 +30,13 @@ export default function ApplicationUploadPage() {
   });
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.8fr,1.2fr]">
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Application Operations"
+        title="Application Upload"
+        description="Upload application CSV files, review row-level validation results, and rematch unmatched rows."
+      />
+      <div className="grid gap-6 xl:grid-cols-[0.8fr,1.2fr]">
       <Card title="Upload Applications CSV">
         <form
           className="grid gap-3"
@@ -36,13 +45,13 @@ export default function ApplicationUploadPage() {
             if (file) upload.mutate();
           }}
         >
-          <input type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] || null)} />
+          <input className="field-control" type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] || null)} />
           <p className="text-sm text-slate-500">
             Expected headers: `applicantName,email,phone,passportNumber,country,programmeCode,studyLevel,applicationStatus,applicationDate,offerDate,enrolmentDate,sourceCampaign,scholarshipMyr,tuitionRevenueMyr`
           </p>
-          <button className="rounded bg-uum-blue px-4 py-2 text-white" type="submit">
+          <Button disabled={!file || upload.isPending} type="submit">
             Upload
-          </button>
+          </Button>
         </form>
       </Card>
 
@@ -54,16 +63,17 @@ export default function ApplicationUploadPage() {
             <p>
               Batch {result.batchId} · {result.successRows} success · {result.failedRows} failed
             </p>
-            <button
-              className="w-fit rounded border px-3 py-1"
+            <Button
+              className="w-fit"
               onClick={() => rematch.mutate()}
+              variant="secondary"
             >
               Rematch Unmatched Rows
-            </button>
+            </Button>
             <div className="overflow-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-slate-500">
+                <thead className="bg-slate-50">
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500">
                     <th className="py-2">Row</th>
                     <th className="py-2">Status</th>
                     <th className="py-2">Result</th>
@@ -73,7 +83,7 @@ export default function ApplicationUploadPage() {
                   {result.rows?.map((row) => (
                     <tr key={row.rowNumber} className="border-b align-top">
                       <td className="py-2">{row.rowNumber}</td>
-                      <td className="py-2">{row.status}</td>
+                      <td className="py-2"><StatusPill value={row.status} /></td>
                       <td className="py-2">
                         {row.errors?.length ? row.errors.join(", ") : row.result?.reason || "Created"}
                       </td>
@@ -85,7 +95,7 @@ export default function ApplicationUploadPage() {
           </div>
         )}
       </Card>
+      </div>
     </div>
   );
 }
-
