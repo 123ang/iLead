@@ -6,13 +6,23 @@ function isJwtError(err) {
   return n === "JsonWebTokenError" || n === "TokenExpiredError" || n === "NotBeforeError";
 }
 
+function isZodError(err) {
+  return err?.name === "ZodError" && Array.isArray(err.issues);
+}
+
 export function notFound(req, res) {
   res.status(404).json({ error: "Not found", path: req.path });
 }
 
 export function errorHandler(err, req, res, _next) {
   let status =
-    err instanceof AppError ? err.status : isJwtError(err) ? 401 : err.statusCode ?? err.status ?? 500;
+    err instanceof AppError
+      ? err.status
+      : isJwtError(err)
+        ? 401
+        : isZodError(err)
+          ? 400
+          : err.statusCode ?? err.status ?? 500;
   status = Number(status);
   if (!(status >= 400 && status <= 599)) status = 500;
 
@@ -20,6 +30,10 @@ export function errorHandler(err, req, res, _next) {
   else if (env.nodeEnv !== "production") console.error(err);
 
   const payload = { error: err.message || "Internal server error" };
+  if (isZodError(err)) {
+    payload.error = "Validation failed";
+    payload.details = err.issues;
+  }
   const includeDetails =
     env.nodeEnv !== "production" &&
     typeof err.details !== "undefined" &&

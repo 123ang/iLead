@@ -9,6 +9,7 @@ import {
   Gauge,
   History,
   LogOut,
+  MessageSquareWarning,
   Settings,
   ShieldCheck,
   Users,
@@ -21,6 +22,7 @@ const NAV = [
   ["/", "Dashboard", Gauge, null],
   ["/campaigns", "Campaigns", Flag, null],
   ["/leads", "Leads", Users, null],
+  ["/follow-ups", "Follow-ups", MessageSquareWarning, null],
   [
     "/duplicates",
     "Duplicates",

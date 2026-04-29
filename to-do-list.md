@@ -104,10 +104,10 @@ Legend:
 
 - [x] Master data read endpoints exist.
 - [x] Master data create endpoint restricted to admin roles.
-- [ ] Implement update endpoints for country/faculty/programme/currency/FX/tuition/scholarship/sponsor.
-- [ ] Implement soft-disable/isActive flows.
+- [x] Implement update endpoints for country/faculty/programme/currency/FX/tuition/scholarship/sponsor.
+- [~] Implement soft-disable/isActive flows. Supported for countries, faculties, programmes, tuition fees, scholarships, and sponsors; FX rates can be deleted; currencies remain update-only because existing campaign costs can reference them.
 - [ ] Implement server-side pagination, filtering, and search.
-- [ ] Implement validation schemas for each master data type.
+- [x] Implement validation schemas for each master data type.
 - [ ] Add tests for master data permissions and validation.
 
 ---
@@ -137,6 +137,7 @@ Legend:
 - [x] Lead soft delete endpoint exists.
 - [x] Lead create validates at least one identifier.
 - [x] Follow-up list/create/overdue endpoints exist.
+- [x] Follow-up update and audited complete endpoints exist.
 - [x] Implement lead update endpoint.
 - [x] Implement lead assign endpoint.
 - [x] Implement lead status history.
@@ -227,7 +228,7 @@ Legend:
 - [x] Generic list page exists.
 - [x] Campaign list uses backend API with create/edit/delete actions.
 - [x] Lead list uses backend API with create/edit/delete actions.
-- [~] Settings/users/audit pages use consistent executive portal views; settings edit is supported for `SUPER_ADMIN`, users/audit remain backend read-only.
+- [x] Settings/users/audit pages use consistent executive portal views; settings edit, user create/edit/deactivate, and audit filtering are implemented against backend endpoints.
 - [~] Implement Campaign list filters/search/pagination. Search/status/type filters are implemented client-side; server pagination/search is not implemented.
 - [x] Implement Campaign create/edit form with multi-country/faculty/programme selection.
 - [~] Implement Campaign detail page with funnel, costs, ROI, leads, applications.
@@ -235,15 +236,15 @@ Legend:
 - [~] Implement Lead list filters/search/pagination. Search/status/quality filters are implemented client-side; server pagination/search is not implemented.
 - [x] Implement Lead create/edit form.
 - [x] Implement Lead detail page with campaign touches, follow-ups, applications.
-- [~] Implement Follow-up create/edit UI and overdue queue. Follow-up creation is implemented on lead detail; edit and overdue queue UI are not implemented.
+- [x] Implement Follow-up create/edit UI and overdue queue.
 - [~] Implement Duplicate Leads page with merge/reject actions and executive portal styling.
 - [~] Implement Application upload page with file upload, column mapping, validation preview. Upload/rematch/result preview are implemented; column mapping is not implemented.
 - [ ] Implement Match Conflicts page.
 - [x] Implement Reports page with URL-backed filters, report tables, CSV export buttons, and metric refresh action.
-- [~] Implement Master Data CRUD pages. Read/create are implemented for backend-supported master data endpoints; edit/delete are disabled with notices because backend endpoints are missing.
-- [~] Implement User Management CRUD page. Read-only executive portal table is implemented; backend create/update/delete endpoints are missing.
+- [~] Implement Master Data CRUD pages. Read/create/edit are implemented for countries, faculties, programmes, currencies, FX rates, tuition fees, scholarships, and sponsors; disable/delete is implemented only where backend semantics are safe, with currency disable clearly marked unsupported.
+- [x] Implement User Management CRUD page.
 - [x] Implement Settings edit page.
-- [~] Implement Audit Logs filtering page. Client-side search is implemented; server filters are not implemented.
+- [x] Implement Audit Logs filtering page.
 - [x] Add responsive/mobile-friendly UI polish for current executive portal pass.
 - [ ] Add frontend component/integration tests.
 

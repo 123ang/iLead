@@ -2,7 +2,11 @@ import { Router } from "express";
 import { prisma } from "../config/db.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { followUpCreateSchema } from "../validators/followup.schema.js";
+import {
+  followUpCompleteSchema,
+  followUpCreateSchema,
+  followUpUpdateSchema,
+} from "../validators/followup.schema.js";
 import { audit } from "../utils/audit.js";
 import { AppError } from "../utils/http.js";
 import { scopedLeadWhere } from "../services/dashboard-scope.service.js";
@@ -56,6 +60,53 @@ router.post(
     });
     await audit(req, "CREATE", "FollowUp", created.id, null, created);
     res.status(201).json(created);
+  }),
+);
+
+router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const data = followUpUpdateSchema.parse(req.body);
+    const before = await prisma.followUp.findFirst({
+      where: { id: req.params.id, lead: scopedLeadWhere(req.user) },
+      include: { lead: true },
+    });
+    if (!before) throw new AppError(404, "Follow-up not found");
+
+    const updateData = { ...data };
+    if (!mayAssignOthers.includes(req.user.role)) delete updateData.staffId;
+
+    const updated = await prisma.followUp.update({
+      where: { id: req.params.id },
+      data: updateData,
+      include: { lead: true, staff: true },
+    });
+    await audit(req, "UPDATE", "FollowUp", updated.id, before, updated);
+    res.json(updated);
+  }),
+);
+
+router.post(
+  "/:id/complete",
+  asyncHandler(async (req, res) => {
+    const data = followUpCompleteSchema.parse(req.body);
+    const before = await prisma.followUp.findFirst({
+      where: { id: req.params.id, lead: scopedLeadWhere(req.user) },
+      include: { lead: true },
+    });
+    if (!before) throw new AppError(404, "Follow-up not found");
+
+    const updated = await prisma.followUp.update({
+      where: { id: req.params.id },
+      data: {
+        outcome: data.outcome || before.outcome || "Completed",
+        notes: data.notes ?? before.notes,
+        nextFollowUpDate: null,
+      },
+      include: { lead: true, staff: true },
+    });
+    await audit(req, "COMPLETE", "FollowUp", updated.id, before, updated);
+    res.json(updated);
   }),
 );
 

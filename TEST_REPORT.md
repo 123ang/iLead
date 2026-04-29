@@ -32,6 +32,15 @@ npm test --workspace backend
 npm run build
 ```
 
+Re-run after completing frontend CRUD management workflows on 2026-04-29:
+
+```bash
+npm run prisma:generate
+npm run prisma:validate
+npm test --workspace backend
+npm run build
+```
+
 Blocked / failed due environment:
 
 ```bash
@@ -65,6 +74,10 @@ npm run test:smoke
 - Backend syntax/build check: PASS on 2026-04-29 after frontend CRUD redesign via `npm run build`.
 - Backend unit tests: PASS on 2026-04-29 after frontend CRUD redesign, 28 tests passing.
 - Frontend production build: PASS on 2026-04-29 after frontend CRUD redesign via `npm run build`.
+- Prisma client generation: PASS on 2026-04-29 after CRUD workflow completion.
+- Prisma schema validation: PASS on 2026-04-29 after CRUD workflow completion.
+- Backend unit tests: PASS on 2026-04-29 after CRUD workflow completion, 28 tests passing.
+- Full backend/frontend build: PASS on 2026-04-29 after CRUD workflow completion. Vite still reports the existing chunk-size warning.
 - Local PostgreSQL runtime: BLOCKED BY SANDBOX
 - Migration against clean database: NOT VERIFIED
 - Seed against clean database: NOT VERIFIED
@@ -79,8 +92,11 @@ npm run test:smoke
 - Leads page now has client-side search/status/quality filters, create/edit drawer, frontend identifier validation, assignment/status controls, and delete confirmation before API call.
 - Lead detail now exposes follow-up creation through a drawer using the existing `/follow-ups` endpoint.
 - Campaign detail now confirms campaign-cost deletion before calling the API.
-- Master Data now supports backend-backed read/create; edit/delete controls are disabled with clear titles because backend endpoints do not exist.
-- Settings page supports backend-backed setting edits for `SUPER_ADMIN`; Users and Audit Logs use consistent read-only executive tables.
+- Master Data now supports backend-backed read/create/edit for countries, faculties, programmes, currencies, FX rates, tuition fees, scholarships, and sponsors. Disable/delete is exposed only where safe: `isActive` resources are disabled, FX rates can be deleted, and currency disable remains marked unsupported.
+- Users page now supports `SUPER_ADMIN` create/edit/deactivate via SlideOver and ConfirmDialog. Temporary passwords are supplied by the admin, hashed server-side, and require password change on login; password hashes are never returned.
+- Audit Logs now use server-side filters for action, entity, user ID, search, date range, and take.
+- Follow-ups now include an overdue queue plus edit and audited complete actions for the latest follow-up record.
+- Settings page supports backend-backed setting edits for `SUPER_ADMIN`.
 - Reports, Duplicates, Application Upload, Dashboard, and detail pages were restyled to match the shared portal components.
 
 ## Automated tests added
