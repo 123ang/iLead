@@ -186,18 +186,18 @@ Legend:
 - [x] Executive dashboard endpoint exists.
 - [x] Recruitment funnel endpoint exists.
 - [x] Per-campaign ROI filters applications by touched leads.
-- [ ] Implement daily `CampaignMetric` refresh job.
+- [x] Implement daily `CampaignMetric` refresh service/script/manual endpoint; production cron is documented but not verified on a host.
 - [ ] Implement dashboard performance targets with real indexes and query tuning.
-- [ ] Implement country performance report.
-- [ ] Implement faculty performance report.
-- [ ] Implement programme conversion report.
-- [ ] Implement follow-up SLA report.
-- [ ] Implement duplicate lead report.
-- [ ] Implement scholarship-adjusted revenue report.
-- [ ] Implement Excel/CSV exports.
+- [x] Implement country performance report.
+- [x] Implement faculty performance report.
+- [x] Implement programme conversion report.
+- [x] Implement follow-up SLA report.
+- [x] Implement duplicate lead report.
+- [x] Implement scholarship-adjusted revenue report.
+- [x] Implement CSV exports for report endpoints.
 - [ ] Implement PDF exports if required for V1.
-- [ ] Audit-log every PII export.
-- [ ] Add tests for ROI edge cases, reports, and PII export permissions.
+- [x] Audit-log report CSV export attempts, including denied PII export attempts.
+- [x] Add tests for ROI edge cases, report calculations, CSV escaping, filters, and PII export permission/audit payload behavior.
 
 ---
 
@@ -239,7 +239,7 @@ Legend:
 - [~] Implement Duplicate Leads page with merge/reject actions.
 - [~] Implement Application upload page with file upload, column mapping, validation preview.
 - [ ] Implement Match Conflicts page.
-- [ ] Implement Reports pages with charts and export buttons.
+- [x] Implement Reports page with URL-backed filters, report tables, CSV export buttons, and metric refresh action.
 - [ ] Implement Master Data CRUD pages.
 - [ ] Implement User Management CRUD page.
 - [ ] Implement Settings edit page.
@@ -251,8 +251,8 @@ Legend:
 
 ## 12. Jobs, notifications, retention, integrations
 
-- [ ] Set up Redis/BullMQ or a documented simpler MVP cron alternative.
-- [ ] Implement metrics refresh job.
+- [~] Set up Redis/BullMQ or a documented simpler MVP cron alternative; documented PM2/cron-compatible script exists, host cron not verified.
+- [x] Implement metrics refresh job service and CLI script.
 - [ ] Implement overdue digest job.
 - [ ] Implement weekly campaign summary job.
 - [ ] Implement PII retention/anonymization job.
@@ -277,11 +277,11 @@ Legend:
 - [ ] Integration tests: upload validation and matching.
 - [ ] Integration tests: dashboard metrics accuracy.
 - [ ] E2E test: login → create campaign → create/upload leads → follow up → upload applications → match → see ROI.
-- [ ] Security test: PII export permission and audit log.
+- [x] Security test: PII export permission and audit payload behavior. Route-level audit persistence still needs DB integration smoke.
 - [ ] Soft delete tests.
 - [ ] Timezone rendering/storage tests.
 - [ ] Performance test with large seeded data.
-- [ ] Produce `TEST_REPORT.md` before claiming full completion.
+- [x] Produce `TEST_REPORT.md` before claiming full completion.
 
 ---
 
@@ -289,13 +289,13 @@ Legend:
 
 - [x] Beginner VPS guide exists.
 - [x] Deployment guide updated to use `prisma migrate deploy`.
-- [ ] Add PM2 ecosystem config.
-- [ ] Add production Nginx config template in repo.
-- [ ] Add backup scripts.
-- [ ] Add restore drill documentation.
-- [ ] Add GitHub Actions CI.
-- [ ] Add production `.env` checklist.
-- [ ] Add monitoring/uptime checklist.
+- [x] Add PM2 ecosystem config.
+- [x] Add production Nginx config template in repo.
+- [x] Add backup scripts.
+- [x] Add restore drill documentation.
+- [x] Add GitHub Actions CI.
+- [x] Add production `.env` checklist.
+- [x] Add monitoring/uptime checklist.
 - [ ] Run production-like deploy smoke test before launch.
 
 ---

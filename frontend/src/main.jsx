@@ -24,6 +24,7 @@ import LeadsPage from "./pages/LeadsPage.jsx";
 import LeadDetailPage from "./pages/LeadDetailPage.jsx";
 import DuplicatesPage from "./pages/DuplicatesPage.jsx";
 import ApplicationUploadPage from "./pages/ApplicationUploadPage.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
 
 const qc = new QueryClient();
 
@@ -66,7 +67,7 @@ function AppRoutes() {
             <Route path="applications/upload" element={<ApplicationUploadPage />} />
             <Route
               path="reports"
-              element={<PlaceholderPage title="Reports" />}
+              element={<ReportsPage />}
             />
             <Route
               path="master-data"

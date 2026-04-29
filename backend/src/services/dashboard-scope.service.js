@@ -47,6 +47,16 @@ export function scopedLeadWhere(user) {
   return base;
 }
 
+export function scopedApplicationWhere(user) {
+  const base = { deletedAt: null };
+  if (!user || isGlobalDashboardRole(user.role)) return base;
+
+  return {
+    ...base,
+    lead: scopedLeadWhere(user),
+  };
+}
+
 /** Campaign visibility for KPI count */
 export function scopedCampaignWhere(user) {
   const base = { deletedAt: null };

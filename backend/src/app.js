@@ -11,6 +11,7 @@ import leadRoutes from "./routes/lead.routes.js";
 import followupRoutes from "./routes/followup.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import reportRoutes from "./routes/report.routes.js";
 import miscRoutes from "./routes/misc.routes.js";
 import { errorHandler, notFound } from "./middleware/error.middleware.js";
 
@@ -55,6 +56,7 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/follow-ups", followupRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api", miscRoutes);
 
 app.get("/health", (_req, res) =>

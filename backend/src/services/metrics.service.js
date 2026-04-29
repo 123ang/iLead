@@ -68,6 +68,6 @@ export async function campaignRoi(campaignId, user) {
       0,
     ),
     scholarship: enrolments.reduce((s, item) => s + Number(item.scholarshipMyr || 0), 0),
-    qualifiedLeads,
+    qualifiedLeads: leadRows.filter((lead) => lead.leadQuality !== "COLD").length,
   });
 }

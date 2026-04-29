@@ -21,7 +21,10 @@ npm run db:seed
 npm run dev
 ```
 
-Default seeded login after DB setup: `admin@ilead.local` / `iLead2026!`.
+Default seeded demo login after DB setup: `admin@ilead.local` / `iLead2026!`.
+The seed also creates non-PII sample countries, faculties, programmes, campaigns,
+leads, applications, offers, enrolments, scholarships, sponsors, FX rates, and
+system settings for UAT walkthroughs.
 
 ## Runtime scripts
 
@@ -35,6 +38,7 @@ npm run prisma:validate
 npm run test
 npm run test:smoke    # requires running backend + reachable database
 npm run build
+npm run metrics:refresh --workspace backend
 ```
 
 Notes:
@@ -42,6 +46,14 @@ Notes:
 - `docker-compose.yml` exposes PostgreSQL on `localhost:55432`.
 - If Docker is unavailable, `db:up` attempts a local PostgreSQL bootstrap via `initdb`/`pg_ctl`.
 - In the current Codex sandbox, Docker is unavailable and the local fallback is blocked by shared-memory restrictions, so database runtime verification has to be done outside this sandbox.
+
+## Reports and exports
+
+Reports are available under `/api/reports` and in the frontend `/reports` page:
+country performance, faculty performance, programme conversion, follow-up SLA,
+duplicates, and scholarship revenue. CSV export attempts are audit logged.
+PII-bearing exports require the caller role to be listed in
+`SystemSetting.pii.export.allowed_roles`.
 
 ## Source of truth
 

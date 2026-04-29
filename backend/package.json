@@ -13,7 +13,8 @@
     "db:migrate": "prisma migrate dev",
     "seed": "prisma db seed",
     "test": "node --test",
-    "test:smoke": "node scripts/smoke-api.mjs"
+    "test:smoke": "node scripts/smoke-api.mjs",
+    "metrics:refresh": "node scripts/refresh-campaign-metrics.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",

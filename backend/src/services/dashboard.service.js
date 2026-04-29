@@ -2,6 +2,7 @@ import { prisma } from "../config/db.js";
 import { calculateRoi } from "./roi.service.js";
 import {
   isGlobalDashboardRole,
+  scopedApplicationWhere,
   scopedCampaignWhere,
   scopedLeadWhere,
 } from "./dashboard-scope.service.js";
@@ -10,8 +11,7 @@ function applicationWhereForDashboard(user) {
   if (!user || isGlobalDashboardRole(user.role)) {
     return { deletedAt: null };
   }
-  const lw = scopedLeadWhere(user);
-  return scopedApplicationWhere(user, lw);
+  return scopedApplicationWhere(user);
 }
 
 export async function executiveDashboard(user) {

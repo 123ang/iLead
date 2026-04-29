@@ -6,6 +6,7 @@ export const safeDiv = (n, d) =>
  */
 export function calculateRoi({
   leads = 0,
+  qualifiedLeads = leads,
   applications = 0,
   offers = 0,
   enrolments = 0,
@@ -22,6 +23,7 @@ export function calculateRoi({
 
   return {
     totalLeads: leads,
+    qualifiedLeads,
     totalApplications: applications,
     totalOffers: offers,
     totalEnrolments: enrolments,
