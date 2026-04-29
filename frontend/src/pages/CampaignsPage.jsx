@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Edit2, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Edit2, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge, StatusPill } from "../components/ui/Badge.jsx";
 import { Button } from "../components/ui/Button.jsx";
@@ -52,24 +52,102 @@ function dateInput(value) {
   return value ? String(value).slice(0, 10) : "";
 }
 
-function MultiSelect({ label, value, onChange, options, labelKey = "name" }) {
+function TickMultiSelectDropdown({
+  label,
+  value,
+  onChange,
+  options,
+  labelKey = "name",
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  const selected = useMemo(() => new Set((value || []).map((v) => String(v))), [value]);
+  const selectedCount = value?.length || 0;
+
+  useEffect(() => {
+    function onDocDown(e) {
+      if (!rootRef.current) return;
+      if (rootRef.current.contains(e.target)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
+  }, []);
+
+  function toggle(id) {
+    const idStr = String(id);
+    if (selected.has(idStr)) {
+      onChange((value || []).filter((v) => String(v) !== idStr));
+      return;
+    }
+    onChange([...(value || []), idStr]);
+  }
+
   return (
     <label className="field-label">
       <span>{label}</span>
-      <select
-        multiple
-        className="field-control min-h-32"
-        value={value}
-        onChange={(event) =>
-          onChange(Array.from(event.target.selectedOptions, (option) => option.value))
-        }
-      >
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option[labelKey]}
-          </option>
-        ))}
-      </select>
+      <div ref={rootRef} className="relative">
+        <button
+          type="button"
+          className="field-control flex items-center justify-between gap-3"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="truncate text-left text-sm text-slate-700">
+            {selectedCount ? `${selectedCount} selected` : "Select..."}
+          </span>
+          <ChevronDown className="h-4 w-4 text-slate-500" />
+        </button>
+
+        {open ? (
+          <div
+            className="absolute left-0 right-0 z-30 mt-2 rounded-xl border border-slate-200 bg-white shadow-executive"
+            role="listbox"
+          >
+            <div className="max-h-60 overflow-auto p-2">
+              {options.map((option) => {
+                const idStr = String(option.id);
+                const checked = selected.has(idStr);
+                return (
+                  <label
+                    key={idStr}
+                    className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 transition ${
+                      checked ? "bg-uum-mist/60" : "hover:bg-uum-mist/40"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={checked}
+                      onChange={() => toggle(idStr)}
+                    />
+                    <span className="text-sm text-slate-800">{option[labelKey]}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-3 py-2">
+              <button
+                type="button"
+                className="text-xs font-semibold text-uum-royal hover:underline"
+                onClick={() => onChange([])}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                className="text-xs font-semibold text-uum-navy hover:underline"
+                onClick={() => setOpen(false)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </label>
   );
 }
@@ -379,19 +457,19 @@ export default function CampaignsPage() {
               onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
             />
           </label>
-          <MultiSelect
+          <TickMultiSelectDropdown
             label="Countries"
             onChange={(countryIds) => setForm((current) => ({ ...current, countryIds }))}
             options={countries}
             value={form.countryIds}
           />
-          <MultiSelect
+          <TickMultiSelectDropdown
             label="Faculties"
             onChange={(facultyIds) => setForm((current) => ({ ...current, facultyIds }))}
             options={faculties}
             value={form.facultyIds}
           />
-          <MultiSelect
+          <TickMultiSelectDropdown
             label="Programmes"
             onChange={(programmeIds) => setForm((current) => ({ ...current, programmeIds }))}
             options={programmes}
