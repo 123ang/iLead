@@ -16,7 +16,6 @@ const resources = [
   { key: "faculties", singular: "Faculty", label: "Faculties", fields: ["name", "code"], canDelete: true },
   { key: "programmes", singular: "Programme", label: "Programmes", fields: ["name", "code", "studyLevel", "facultyId", "durationYears"], canDelete: true },
   { key: "currencies", singular: "Currency", label: "Currencies", fields: ["code", "name", "symbol"], canDelete: false, note: "[~] Currency disable is not exposed because campaign costs can reference currencies." },
-  { key: "fxRates", singular: "FX Rate", label: "FX Rates", fields: ["currencyId", "rateToMyr", "rateDate", "source"], canDelete: true, hardDelete: true },
   { key: "tuitionFees", singular: "Tuition Fee", label: "Tuition Fees", fields: ["programmeId", "studyLevel", "amountMyr", "academicYear", "annualFeeMyr", "fullProgrammeFeeMyr", "effectiveFrom", "effectiveTo"], canDelete: true },
   { key: "scholarships", singular: "Scholarship", label: "Scholarships", fields: ["name", "type", "discountPercent", "amountMyr", "valueMyr", "isPercent"], canDelete: true },
   { key: "sponsors", singular: "Sponsor", label: "Sponsors", fields: ["name", "countryId"], canDelete: true },
@@ -226,7 +225,7 @@ export default function MasterDataPage() {
       <PageHeader
         eyebrow="Reference Data"
         title="Master Data"
-        description="Maintain backend-supported countries, faculties, programmes, currencies, FX rates, tuition fees, scholarships, and sponsors."
+        description="Maintain backend-supported countries, faculties, programmes, currencies, tuition fees, scholarships, and sponsors."
         actions={<Button onClick={openCreate}><Plus className="h-4 w-4" />New {active.singular}</Button>}
       />
 

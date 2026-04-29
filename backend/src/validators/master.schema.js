@@ -49,13 +49,6 @@ const currency = z.object({
   symbol: optionalString,
 });
 
-const fxRate = z.object({
-  currencyId: cuid,
-  rateToMyr: decimal,
-  rateDate: z.coerce.date(),
-  source: optionalString,
-});
-
 const tuitionFee = z.object({
   programmeId: cuid,
   studyLevel,
@@ -117,16 +110,6 @@ export const masterResources = {
     updateSchema: partial(currency),
     softDisable: false,
     orderBy: { code: "asc" },
-  },
-  fxRates: {
-    model: "fXRate",
-    entity: "FXRate",
-    createSchema: fxRate,
-    updateSchema: partial(fxRate),
-    softDisable: false,
-    hardDelete: true,
-    include: { currency: true },
-    orderBy: { rateDate: "desc" },
   },
   tuitionFees: {
     model: "tuitionFee",
