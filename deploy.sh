@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="/root/projects/ilead"
+APP_DIR="/root/projects/iLead"
 PM2_NAME="ilead-api"
 BACKEND_PORT="4016"
 
@@ -9,6 +9,11 @@ echo "==> iLead deploy started"
 
 if [[ ! -d "$APP_DIR" ]]; then
   echo "ERROR: App directory not found: $APP_DIR"
+  exit 1
+fi
+
+if [[ ! -d "$APP_DIR/backend" ]]; then
+  echo "ERROR: Backend directory not found: $APP_DIR/backend"
   exit 1
 fi
 
@@ -35,9 +40,9 @@ npm run build
 
 echo "==> Restarting backend with PM2"
 if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-  pm2 restart "$PM2_NAME"
+  pm2 restart "$PM2_NAME" --update-env
 else
-  pm2 start backend/src/server.js --name "$PM2_NAME"
+  pm2 start src/server.js --name "$PM2_NAME" --cwd "$APP_DIR/backend"
 fi
 
 pm2 save
