@@ -97,15 +97,19 @@ export default function ReportsPage() {
     return reportRows(data);
   }, [data]);
 
-  const headers = useMemo(
-    () => [
+  const headers = useMemo(() => {
+    const allHeaders = [
       ...rows.reduce((set, row) => {
         Object.keys(row).forEach((key) => set.add(key));
         return set;
       }, new Set()),
-    ].slice(0, 12),
-    [rows],
-  );
+    ];
+    const filteredHeaders =
+      reportKey === "country-performance"
+        ? allHeaders.filter((header) => header !== "id")
+        : allHeaders;
+    return filteredHeaders.slice(0, 12);
+  }, [rows, reportKey]);
 
   async function exportCsv() {
     const response = await api.get(`/reports/${reportKey}/export.csv`, {
