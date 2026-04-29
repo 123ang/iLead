@@ -137,11 +137,11 @@ Legend:
 - [x] Lead soft delete endpoint exists.
 - [x] Lead create validates at least one identifier.
 - [x] Follow-up list/create/overdue endpoints exist.
-- [~] Implement lead update endpoint.
-- [~] Implement lead assign endpoint.
-- [~] Implement lead status history.
+- [x] Implement lead update endpoint.
+- [x] Implement lead assign endpoint.
+- [x] Implement lead status history.
 - [~] Implement robust overdue SLA calculation using HOT/WARM/COLD settings in MYT.
-- [ ] Implement staff-specific lead visibility and assignment rules.
+- [x] Implement staff-specific lead visibility and assignment rules.
 - [ ] Implement in-app notifications for assignment and overdue follow-ups.
 - [ ] Add tests for lead validation, assignment, SLA, status transitions, and permissions.
 
@@ -149,15 +149,15 @@ Legend:
 
 ## 7. Backend API — deduplication
 
-- [~] Duplicate queue route exists.
-- [~] Implement exact duplicate detection: email.
-- [~] Implement exact duplicate detection: phone.
-- [~] Implement exact duplicate detection: passport.
-- [~] Implement possible duplicate detection: same name + country + programme.
-- [~] Implement manual merge queue actions: accept/link, reject, mark reviewed.
-- [~] Ensure accepted duplicates use `LeadCampaignTouch`, not duplicate lead rows.
-- [ ] Add duplicate report endpoint.
-- [ ] Add tests for exact/fuzzy duplicate detection and merge behavior.
+- [x] Duplicate queue route exists.
+- [x] Implement exact duplicate detection: email.
+- [x] Implement exact duplicate detection: phone.
+- [x] Implement exact duplicate detection: passport.
+- [x] Implement possible duplicate detection: same name + country + programme.
+- [x] Implement manual merge queue actions: accept/link, reject, mark reviewed.
+- [x] Ensure accepted duplicates use `LeadCampaignTouch`, not duplicate lead rows.
+- [x] Add duplicate report endpoint.
+- [x] Add tests for exact/fuzzy duplicate detection and merge behavior.
 
 ---
 
@@ -214,7 +214,7 @@ Legend:
 - [x] Role-filtered nav partially implemented.
 - [ ] Add forgot password page.
 - [ ] Add reset password page.
-- [ ] Add logout button and session expiry UX.
+- [~] Add logout button and session expiry UX.
 - [ ] Add user profile/change password UX in main layout.
 - [ ] Add loading/error/toast system.
 - [ ] Add frontend auth tests.

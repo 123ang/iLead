@@ -4,6 +4,8 @@ import { requireAuth } from "../middleware/auth.middleware.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { followUpCreateSchema } from "../validators/followup.schema.js";
 import { audit } from "../utils/audit.js";
+import { AppError } from "../utils/http.js";
+import { scopedLeadWhere } from "../services/dashboard-scope.service.js";
 import { getSystemSettingsMap } from "../services/system-setting.service.js";
 import { getLeadOverdueState } from "../services/sla.service.js";
 
@@ -14,9 +16,10 @@ router.use(requireAuth);
 
 router.get(
   "/",
-  asyncHandler(async (_req, res) =>
+  asyncHandler(async (req, res) =>
     res.json(
       await prisma.followUp.findMany({
+        where: { lead: scopedLeadWhere(req.user) },
         take: 100,
         include: { lead: true, staff: true },
         orderBy: { followUpDate: "desc" },
@@ -29,6 +32,12 @@ router.post(
   "/",
   asyncHandler(async (req, res) => {
     const data = followUpCreateSchema.parse(req.body);
+    const lead = await prisma.lead.findFirst({
+      where: { id: data.leadId, ...scopedLeadWhere(req.user) },
+      select: { id: true },
+    });
+    if (!lead) throw new AppError(404, "Lead not found");
+
     let staffId = req.user.id;
     if (mayAssignOthers.includes(req.user.role)) {
       staffId = data.staffId || req.user.id;
@@ -56,7 +65,7 @@ router.get(
     const [settings, leads] = await Promise.all([
       getSystemSettingsMap(),
       prisma.lead.findMany({
-        where: { deletedAt: null },
+        where: scopedLeadWhere(req.user),
         include: {
           assignedStaff: true,
           followUps: {
@@ -96,14 +105,20 @@ router.get(
 
 router.get(
   "/lead/:leadId",
-  asyncHandler(async (req, res) =>
+  asyncHandler(async (req, res) => {
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.leadId, ...scopedLeadWhere(req.user) },
+      select: { id: true },
+    });
+    if (!lead) throw new AppError(404, "Lead not found");
+
     res.json(
       await prisma.followUp.findMany({
         where: { leadId: req.params.leadId },
         orderBy: { followUpDate: "desc" },
       }),
-    ),
-  ),
+    );
+  }),
 );
 
 export default router;

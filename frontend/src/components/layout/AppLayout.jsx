@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/auth.store.js";
+import { api } from "../../services/api.js";
 
 /** [, , optional predicate(role)→boolean] */
 const NAV = [
@@ -26,11 +27,24 @@ const NAV = [
 ];
 
 export function AppLayout() {
+  const user = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.user?.role ?? "");
+  const clearSession = useAuthStore((s) => s.logout);
 
   const visible = NAV.filter(([, , pred]) =>
     typeof pred !== "function" ? true : Boolean(pred(role)),
   );
+
+  async function handleLogout() {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Clear local session even if the refresh cookie is already invalid.
+    } finally {
+      clearSession();
+      window.location.href = "/login";
+    }
+  }
 
   return (
     <div className="min-h-screen lg:flex">
@@ -65,6 +79,19 @@ export function AppLayout() {
             <p className="text-sm text-slate-500">
               Campaign → Lead → Follow-up → Application → Enrolment → ROI
             </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="text-right">
+              <div className="font-medium text-slate-700">{user?.name || "Session"}</div>
+              <div className="text-slate-500">{user?.role || "Unknown role"}</div>
+            </div>
+            <button
+              className="rounded border border-slate-300 px-3 py-2 text-slate-700"
+              onClick={handleLogout}
+              type="button"
+            >
+              Logout
+            </button>
           </div>
         </header>
         <Outlet />

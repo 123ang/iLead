@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 
@@ -8,7 +14,6 @@ const ROOT = process.cwd();
 const DATA_DIR = process.env.ILEAD_PGDATA || join(ROOT, ".tmp", "postgres");
 const LOG_DIR = join(ROOT, ".tmp");
 const LOG_FILE = join(LOG_DIR, "postgres.log");
-const MODE_FILE = join(DATA_DIR, ".runtime-mode");
 const DATABASE_URL =
   process.env.DATABASE_URL ||
   `postgresql://ilead_user:password@127.0.0.1:${PORT}/ilead_db`;
@@ -36,6 +41,30 @@ function pgReady() {
   return result.status === 0;
 }
 
+function isInitializedCluster() {
+  return existsSync(join(DATA_DIR, "PG_VERSION"));
+}
+
+function ensureClusterDirectory() {
+  if (!existsSync(DATA_DIR)) {
+    mkdirSync(DATA_DIR, { recursive: true });
+    return;
+  }
+
+  if (isInitializedCluster()) {
+    return;
+  }
+
+  const entries = readdirSync(DATA_DIR).filter((entry) => entry !== ".DS_Store");
+  if (!entries.length) {
+    return;
+  }
+
+  throw new Error(
+    `PostgreSQL data directory '${DATA_DIR}' exists but is not an initialized cluster. Remove it or set ILEAD_PGDATA to a clean directory.`,
+  );
+}
+
 function ensureLocalDb() {
   if (!commandExists("initdb") || !commandExists("pg_ctl") || !commandExists("psql")) {
     throw new Error(
@@ -44,8 +73,9 @@ function ensureLocalDb() {
   }
 
   mkdirSync(LOG_DIR, { recursive: true });
-
-  if (!existsSync(DATA_DIR)) {
+  ensureClusterDirectory();
+  if (!isInitializedCluster()) {
+    rmSync(DATA_DIR, { recursive: true, force: true });
     mkdirSync(DATA_DIR, { recursive: true });
     run("initdb", ["-D", DATA_DIR, "-A", "trust", "-U", "postgres"]);
   }
@@ -83,14 +113,12 @@ function ensureLocalDb() {
     "-c",
     "GRANT ALL PRIVILEGES ON DATABASE ilead_db TO ilead_user;",
   ]);
-  writeFileSync(MODE_FILE, "local");
   console.log(`Local PostgreSQL ready at ${DATABASE_URL}`);
 }
 
 if (usingDocker()) {
   mkdirSync(DATA_DIR, { recursive: true });
   run("docker", ["compose", "up", "-d", "postgres"]);
-  writeFileSync(MODE_FILE, "docker");
   console.log("Docker PostgreSQL started via docker compose.");
 } else {
   ensureLocalDb();

@@ -13,6 +13,7 @@ export async function matchApplicationToLead(application, tx = prisma) {
   const passportNumber = normalizePassport(application.passportNumber);
   const email = normalizeEmail(application.email);
   const phone = normalizePhone(application.phone);
+  const applicantName = String(application.applicantName || "").trim();
   const baseWhere = { deletedAt: null };
 
   const matches = [];
@@ -45,15 +46,17 @@ export async function matchApplicationToLead(application, tx = prisma) {
     };
   }
 
-  const fuzzy = await tx.lead.findFirst({
+  const fuzzyCandidates = await tx.lead.findMany({
     where: {
       ...baseWhere,
       countryId: application.countryId ?? undefined,
       interestedProgrammeId: application.programmeId ?? undefined,
-      fullName: application.applicantName,
     },
   });
-  if (fuzzy && normalizeName(fuzzy.fullName) === normalizeName(application.applicantName)) {
+  const fuzzy = fuzzyCandidates.find(
+    (lead) => normalizeName(lead.fullName) === normalizeName(applicantName),
+  );
+  if (fuzzy) {
     return { status: "matched", reason: "name_country_programme", lead: fuzzy };
   }
 
@@ -62,7 +65,7 @@ export async function matchApplicationToLead(application, tx = prisma) {
       where: {
         ...baseWhere,
         touches: { some: { campaignId: application.sourceCampaignId } },
-        fullName: application.applicantName,
+        fullName: applicantName,
       },
     });
     if (campaignLead) {
@@ -76,4 +79,3 @@ export async function matchApplicationToLead(application, tx = prisma) {
 
   return { status: "unmatched", reason: "NO_MATCH" };
 }
-

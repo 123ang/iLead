@@ -9,21 +9,39 @@ import {
 } from "../validators/lead.schema.js";
 import { audit } from "../utils/audit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { AppError } from "../utils/http.js";
 import { scopedLeadWhere } from "../services/dashboard-scope.service.js";
 import {
   createDuplicateCandidatesForLead,
   mergeLeadCandidate,
 } from "../services/duplicate-lead.service.js";
+import { buildDuplicateReport } from "../services/duplicate-report.service.js";
 import {
   leadHasIdentifier,
   normalizeLeadIdentifiers,
 } from "../services/lead-identity.service.js";
 
 const router = Router();
+const duplicateRoles = [
+  "SUPER_ADMIN",
+  "MANAGEMENT",
+  "CIAC_ADMIN",
+  "FACULTY_DEAN",
+];
+const leadDeleteRoles = ["SUPER_ADMIN", "MANAGEMENT", "CIAC_ADMIN"];
+const leadAssignRoles = [
+  "SUPER_ADMIN",
+  "MANAGEMENT",
+  "CIAC_ADMIN",
+  "FACULTY_DEAN",
+  "PROGRAMME_COORDINATOR",
+];
+
 router.use(requireAuth);
 
 router.get(
   "/duplicates",
+  requireRole(...duplicateRoles),
   asyncHandler(async (_req, res) =>
     res.json(
       await prisma.leadMergeCandidate.findMany({
@@ -37,6 +55,40 @@ router.get(
       }),
     ),
   ),
+);
+
+router.get(
+  "/duplicates/report",
+  requireRole(...duplicateRoles),
+  asyncHandler(async (_req, res) => {
+    const [candidates, recentPending] = await Promise.all([
+      prisma.leadMergeCandidate.findMany({
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          status: true,
+          reason: true,
+          confidence: true,
+          createdAt: true,
+          reviewedAt: true,
+        },
+      }),
+      prisma.leadMergeCandidate.findMany({
+        where: { status: "PENDING" },
+        take: 10,
+        orderBy: [{ confidence: "desc" }, { createdAt: "desc" }],
+        include: {
+          leadA: true,
+          leadB: true,
+        },
+      }),
+    ]);
+
+    res.json({
+      summary: buildDuplicateReport(candidates),
+      recentPending,
+    });
+  }),
 );
 
 router.get(
@@ -106,36 +158,39 @@ router.post(
 
 router.get(
   "/:id",
-  asyncHandler(async (req, res) =>
-    res.json(
-      await prisma.lead.findUnique({
-        where: { id: req.params.id },
-        include: {
-          followUps: true,
-          applications: {
-            include: { offers: true, enrolments: true },
-          },
-          touches: { include: { campaign: true } },
-          country: true,
-          interestedProgramme: true,
-          statusHistory: {
-            include: {
-              changedBy: { select: { id: true, name: true, email: true } },
-            },
-            orderBy: { changedAt: "desc" },
-          },
-          assignedStaff: true,
+  asyncHandler(async (req, res) => {
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id, ...scopedLeadWhere(req.user) },
+      include: {
+        followUps: true,
+        applications: {
+          include: { offers: true, enrolments: true },
         },
-      }),
-    ),
-  ),
+        touches: { include: { campaign: true } },
+        country: true,
+        interestedProgramme: true,
+        statusHistory: {
+          include: {
+            changedBy: { select: { id: true, name: true, email: true } },
+          },
+          orderBy: { changedAt: "desc" },
+        },
+        assignedStaff: true,
+      },
+    });
+    if (!lead) throw new AppError(404, "Lead not found");
+    res.json(lead);
+  }),
 );
 
 router.patch(
   "/:id",
   asyncHandler(async (req, res) => {
     const data = leadUpdateSchema.parse(req.body);
-    const current = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const current = await prisma.lead.findFirst({
+      where: { id: req.params.id, ...scopedLeadWhere(req.user) },
+    });
+    if (!current) throw new AppError(404, "Lead not found");
     const merged = normalizeLeadIdentifiers({ ...current, ...data });
     if (!leadHasIdentifier(merged)) {
       return res.status(400).json({
@@ -211,9 +266,13 @@ router.patch(
 
 router.patch(
   "/:id/assign",
+  requireRole(...leadAssignRoles),
   asyncHandler(async (req, res) => {
     const { assignedStaffId } = leadAssignSchema.parse(req.body);
-    const current = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const current = await prisma.lead.findFirst({
+      where: { id: req.params.id, ...scopedLeadWhere(req.user) },
+    });
+    if (!current) throw new AppError(404, "Lead not found");
     const updated = await prisma.$transaction(async (tx) => {
       const lead = await tx.lead.update({
         where: { id: req.params.id },
@@ -242,7 +301,10 @@ router.patch(
   "/:id/status",
   asyncHandler(async (req, res) => {
     const { status, reason } = leadStatusSchema.parse(req.body);
-    const current = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const current = await prisma.lead.findFirst({
+      where: { id: req.params.id, ...scopedLeadWhere(req.user) },
+    });
+    if (!current) throw new AppError(404, "Lead not found");
     const updated = await prisma.$transaction(async (tx) => {
       const lead = await tx.lead.update({
         where: { id: req.params.id },
@@ -266,6 +328,7 @@ router.patch(
 
 router.post(
   "/duplicates/:id/merge",
+  requireRole(...duplicateRoles),
   asyncHandler(async (req, res) => {
     const merged = await mergeLeadCandidate({
       candidateId: req.params.id,
@@ -278,6 +341,7 @@ router.post(
 
 router.post(
   "/duplicates/:id/reject",
+  requireRole(...duplicateRoles),
   asyncHandler(async (req, res) => {
     const updated = await prisma.leadMergeCandidate.update({
       where: { id: req.params.id },
@@ -294,6 +358,7 @@ router.post(
 
 router.post(
   "/duplicates/:id/ignore",
+  requireRole(...duplicateRoles),
   asyncHandler(async (req, res) => {
     const updated = await prisma.leadMergeCandidate.update({
       where: { id: req.params.id },
@@ -310,8 +375,12 @@ router.post(
 
 router.delete(
   "/:id",
+  requireRole(...leadDeleteRoles),
   asyncHandler(async (req, res) => {
-    const before = await prisma.lead.findUnique({ where: { id: req.params.id } });
+    const before = await prisma.lead.findFirst({
+      where: { id: req.params.id, ...scopedLeadWhere(req.user) },
+    });
+    if (!before) throw new AppError(404, "Lead not found");
     const deleted = await prisma.lead.update({
       where: { id: req.params.id },
       data: { deletedAt: new Date() },

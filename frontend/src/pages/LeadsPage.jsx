@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { Card } from "../components/ui/Card.jsx";
 import { api } from "../services/api.js";
+import { useAuthStore } from "../store/auth.store.js";
 
 const emptyLead = {
   fullName: "",
@@ -26,8 +27,16 @@ const emptyLead = {
 
 export default function LeadsPage() {
   const qc = useQueryClient();
+  const role = useAuthStore((state) => state.user?.role ?? "");
   const [form, setForm] = useState(emptyLead);
   const [editingId, setEditingId] = useState(null);
+  const mayAssign = [
+    "SUPER_ADMIN",
+    "MANAGEMENT",
+    "CIAC_ADMIN",
+    "FACULTY_DEAN",
+    "PROGRAMME_COORDINATOR",
+  ].includes(role);
 
   const { data: leads = { items: [] } } = useQuery({
     queryKey: ["leads"],
@@ -135,25 +144,31 @@ export default function LeadsPage() {
                     </select>
                   </td>
                   <td className="py-2">
-                    <select
-                      className="rounded border border-slate-300 p-1 text-xs"
-                      value={lead.assignedStaffId || ""}
-                      onChange={(event) =>
-                        assignLead.mutate({
-                          leadId: lead.id,
-                          assignedStaffId: event.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Unassigned</option>
-                      {users
-                        .filter((user) => user.role === "STAFF")
-                        .map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.name}
-                          </option>
-                        ))}
-                    </select>
+                    {mayAssign ? (
+                      <select
+                        className="rounded border border-slate-300 p-1 text-xs"
+                        value={lead.assignedStaffId || ""}
+                        onChange={(event) =>
+                          assignLead.mutate({
+                            leadId: lead.id,
+                            assignedStaffId: event.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Unassigned</option>
+                        {users
+                          .filter((user) => user.role === "STAFF")
+                          .map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.name}
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-slate-500">
+                        {lead.assignedStaff?.name || "Unassigned"}
+                      </span>
+                    )}
                   </td>
                   <td className="py-2 text-right">
                     <button
@@ -234,22 +249,24 @@ export default function LeadsPage() {
               </option>
             ))}
           </select>
-          <select
-            className="rounded border border-slate-300 p-2"
-            value={form.assignedStaffId}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, assignedStaffId: event.target.value }))
-            }
-          >
-            <option value="">Assign staff</option>
-            {users
-              .filter((user) => user.role === "STAFF")
-              .map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-          </select>
+          {mayAssign ? (
+            <select
+              className="rounded border border-slate-300 p-2"
+              value={form.assignedStaffId}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, assignedStaffId: event.target.value }))
+              }
+            >
+              <option value="">Assign staff</option>
+              {users
+                .filter((user) => user.role === "STAFF")
+                .map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+            </select>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-3">
             <select
               className="rounded border border-slate-300 p-2"
@@ -310,4 +327,3 @@ export default function LeadsPage() {
     </div>
   );
 }
-
