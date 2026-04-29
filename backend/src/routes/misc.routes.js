@@ -185,4 +185,59 @@ router.delete(
   }),
 );
 
+// Notifications
+router.get(
+  "/notifications",
+  asyncHandler(async (req, res) => {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize || 50)));
+    const unreadOnly =
+      String(req.query.unreadOnly || "")
+        .toLowerCase()
+        .trim() === "1";
+
+    const where = {
+      userId: req.user.id,
+      ...(unreadOnly ? { isRead: false } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.notification.count({ where }),
+    ]);
+
+    res.json({ items, total, page, pageSize });
+  }),
+);
+
+router.patch(
+  "/notifications/:id/read",
+  asyncHandler(async (req, res) => {
+    const before = await prisma.notification.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!before) throw new AppError(404, "Notification not found");
+
+    const updated = await prisma.notification.update({
+      where: { id: req.params.id, userId: req.user.id },
+      data: { isRead: true },
+    });
+
+    await audit(
+      req,
+      "READ_NOTIFICATION",
+      "Notification",
+      updated.id,
+      before,
+      updated,
+    );
+    res.json(updated);
+  }),
+);
+
 export default router;

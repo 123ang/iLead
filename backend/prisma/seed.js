@@ -109,7 +109,7 @@ async function resetDatabase() {
     prisma.tuitionFee.deleteMany(),
     prisma.scholarship.deleteMany(),
     prisma.sponsor.deleteMany(),
-    prisma.fxRate.deleteMany(),
+    prisma.fXRate.deleteMany(),
     prisma.currency.deleteMany(),
     prisma.programme.deleteMany(),
     prisma.user.deleteMany(),
@@ -175,7 +175,7 @@ async function seedMasterData() {
 
   for (const month of [1, 2, 3, 4, 5, 6]) {
     for (const [code, rateToMyr] of Object.entries(fxRates)) {
-      await prisma.fxRate.create({
+      await prisma.fXRate.create({
         data: {
           currencyId: currencyMap.get(code).id,
           rateToMyr,

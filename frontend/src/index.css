@@ -35,7 +35,12 @@ textarea:disabled {
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md bg-uum-blue px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-uum-royal disabled:bg-slate-300;
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-uum-gold px-3.5 py-2 text-sm font-semibold text-uum-navy shadow-sm transition disabled:bg-slate-300 disabled:text-slate-500;
+  }
+
+  /* Avoid relying on `hover:bg-uum-royal` utility availability in dev-time Tailwind @apply. */
+  .btn-primary:hover {
+    background-color: #b98916;
   }
 
   .btn-secondary {

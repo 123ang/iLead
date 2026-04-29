@@ -15,7 +15,7 @@ export function DataTable({
   if (!rows?.length) return <EmptyState title={emptyTitle} description={emptyDescription} />;
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-auto">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-slate-50">

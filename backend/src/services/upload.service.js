@@ -1,4 +1,5 @@
 import { UploadStatus, UploadType } from "@prisma/client";
+import * as XLSX from "xlsx";
 
 function splitCsvLine(line) {
   const values = [];
@@ -41,6 +42,31 @@ export function parseCsvBuffer(buffer) {
       row[header] = cells[i] ?? "";
     });
     return { rowNumber: index + 2, data: row };
+  });
+}
+
+export function parseXlsxBuffer(buffer) {
+  // Reads the first worksheet and converts it into the same header→row format as CSV parsing.
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames?.[0];
+  if (!sheetName) return [];
+
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+  if (!Array.isArray(rows) || rows.length < 2) return [];
+
+  const headers = rows[0]
+    .map((h) => String(h ?? "").trim())
+    .filter((h) => h.length > 0);
+
+  if (headers.length === 0) return [];
+
+  return rows.slice(1).map((cells, idx) => {
+    const rowData = {};
+    headers.forEach((header, i) => {
+      rowData[header] = cells?.[i] ?? "";
+    });
+    return { rowNumber: idx + 2, data: rowData };
   });
 }
 

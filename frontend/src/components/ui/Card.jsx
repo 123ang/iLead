@@ -3,10 +3,10 @@ import React from "react";
 export function Card({ title, subtitle, children, className = "", actions }) {
   return (
     <section
-      className={`rounded-md border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      className={`rounded-xl border border-slate-200 bg-white p-6 shadow-executive ${className}`}
     >
       {title || actions ? (
-        <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             {title ? <h2 className="font-bold text-uum-navy">{title}</h2> : null}
             {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}

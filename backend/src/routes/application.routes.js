@@ -14,12 +14,14 @@ import {
   assertUploadType,
   buildUploadBatchSummary,
   parseCsvBuffer,
+  parseXlsxBuffer,
 } from "../services/upload.service.js";
 import {
   normalizeEmail,
   normalizePassport,
   normalizePhone,
 } from "../services/lead-identity.service.js";
+import { requireRole } from "../middleware/role.middleware.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -86,6 +88,22 @@ function normalizeUploadRow(row, references) {
     scholarshipMyr: row.scholarshipMyr ? Number(row.scholarshipMyr) : 0,
     tuitionRevenueMyr: row.tuitionRevenueMyr ? Number(row.tuitionRevenueMyr) : 0,
   };
+}
+
+function applyColumnMapping(rowData, columnMapping) {
+  if (!columnMapping || typeof columnMapping !== "object") return rowData;
+  const mapped = { ...rowData };
+
+  // columnMapping is { internalKey: headerName }
+  for (const [internalKey, headerName] of Object.entries(columnMapping)) {
+    const header = String(headerName ?? "").trim();
+    if (!header) continue;
+    if (Object.prototype.hasOwnProperty.call(rowData, header)) {
+      mapped[internalKey] = rowData[header];
+    }
+  }
+
+  return mapped;
 }
 
 router.get(
@@ -179,102 +197,230 @@ router.post(
   upload.single("file"),
   asyncHandler(async (req, res) => {
     if (!req.file) {
-      return res.status(400).json({ message: "CSV file is required." });
+      return res.status(400).json({ message: "File is required." });
     }
 
     assertUploadType("APPLICATIONS");
-    const parsedRows = parseCsvBuffer(req.file.buffer);
-    const references = await buildReferenceMaps();
-    const batch = await prisma.uploadBatch.create({
-      data: {
-        type: "APPLICATIONS",
-        fileName: req.file.originalname,
-        uploadedBy: req.user.id,
-        status: "PROCESSING",
-      },
-    });
+    const originalName = String(req.file.originalname || "");
+    const ext = originalName.includes(".")
+      ? originalName.split(".").pop().toLowerCase()
+      : "";
 
-    const processedRows = [];
-    for (const row of parsedRows) {
-      const normalized = normalizeUploadRow(row.data, references);
-      const parsed = applicationCreateSchema.safeParse(normalized);
-      if (!parsed.success) {
-        processedRows.push({
-          rowNumber: row.rowNumber,
-          rawData: row.data,
-          normalizedData: normalized,
-          status: "FAILED",
-          errors: parsed.error.issues.map((issue) => issue.message),
-        });
-        continue;
+    const parsedRows =
+      ext === "xlsx" || ext === "xls"
+        ? parseXlsxBuffer(req.file.buffer)
+        : parseCsvBuffer(req.file.buffer);
+
+    // columnMapping is optional JSON string from the client.
+    let columnMapping = null;
+    if (req.body?.columnMapping) {
+      try {
+        columnMapping = JSON.parse(req.body.columnMapping);
+      } catch {
+        columnMapping = null;
       }
-
-      const match = await matchApplicationToLead(parsed.data);
-      const application = await prisma.application.create({
-        data: {
-          ...parsed.data,
-          uploadBatchId: batch.id,
-          leadId: match.status === "matched" ? match.lead.id : null,
-        },
-      });
-      await prisma.applicationStatusHistory.create({
-        data: {
-          applicationId: application.id,
-          fromStatus: null,
-          toStatus: application.applicationStatus,
-          changedById: req.user.id,
-          reason: "Upload import",
-        },
-      });
-      await syncApplicationOutcomeRecords(application.id);
-
-      processedRows.push({
-        rowNumber: row.rowNumber,
-        rawData: row.data,
-        normalizedData: parsed.data,
-        status:
-          match.status === "conflict"
-            ? "CONFLICT"
-            : match.status === "matched"
-              ? "MATCHED"
-              : "CREATED",
-        errors: match.status === "conflict" ? [match.reason] : [],
-        result: match,
-        applicationId: application.id,
-        leadId: match.status === "matched" ? match.lead.id : null,
-      });
     }
 
-    const summary = buildUploadBatchSummary(processedRows);
-    await prisma.$transaction([
-      prisma.uploadBatchRow.createMany({
-        data: processedRows.map((row) => ({
-          uploadBatchId: batch.id,
-          rowNumber: row.rowNumber,
-          rawData: row.rawData,
-          normalizedData: row.normalizedData ?? null,
-          status: row.status,
-          errors: row.errors?.length ? row.errors : null,
-          result: row.result ?? null,
-          leadId: row.leadId ?? null,
-          applicationId: row.applicationId ?? null,
-        })),
-      }),
-      prisma.uploadBatch.update({
-        where: { id: batch.id },
-        data: {
-          ...summary,
-          completedAt: new Date(),
-        },
-      }),
-    ]);
+    const references = await buildReferenceMaps();
+    const { batchId, summary, rows: processedRows } = await prisma.$transaction(
+      async (tx) => {
+        const batch = await tx.uploadBatch.create({
+          data: {
+            type: "APPLICATIONS",
+            fileName: originalName,
+            uploadedBy: req.user.id,
+            status: "PROCESSING",
+          },
+        });
 
-    await audit(req, "UPLOAD", "UploadBatch", batch.id, null, summary);
-    res.status(201).json({
-      batchId: batch.id,
-      ...summary,
-      rows: processedRows,
+        const rows = [];
+        for (const row of parsedRows) {
+          const mapped = applyColumnMapping(row.data, columnMapping);
+          const normalized = normalizeUploadRow(mapped, references);
+          const parsed = applicationCreateSchema.safeParse(normalized);
+
+          if (!parsed.success) {
+            rows.push({
+              rowNumber: row.rowNumber,
+              rawData: row.data,
+              normalizedData: normalized,
+              status: "FAILED",
+              errors: parsed.error.issues.map((issue) => issue.message),
+            });
+            continue;
+          }
+
+          const match = await matchApplicationToLead(parsed.data, tx);
+          const application = await tx.application.create({
+            data: {
+              ...parsed.data,
+              uploadBatchId: batch.id,
+              leadId: match.status === "matched" ? match.lead.id : null,
+            },
+          });
+
+          await tx.applicationStatusHistory.create({
+            data: {
+              applicationId: application.id,
+              fromStatus: null,
+              toStatus: application.applicationStatus,
+              changedById: req.user.id,
+              reason: "Upload import",
+            },
+          });
+
+          await syncApplicationOutcomeRecords(application.id, tx);
+
+          rows.push({
+            rowNumber: row.rowNumber,
+            rawData: row.data,
+            normalizedData: parsed.data,
+            status:
+              match.status === "conflict"
+                ? "CONFLICT"
+                : match.status === "matched"
+                  ? "MATCHED"
+                  : "CREATED",
+            errors: match.status === "conflict" ? [match.reason] : [],
+            result: match,
+            applicationId: application.id,
+            leadId: match.status === "matched" ? match.lead.id : null,
+          });
+        }
+
+        const summary = buildUploadBatchSummary(rows);
+
+        await tx.uploadBatchRow.createMany({
+          data: rows.map((row) => ({
+            uploadBatchId: batch.id,
+            rowNumber: row.rowNumber,
+            rawData: row.rawData,
+            normalizedData: row.normalizedData ?? null,
+            status: row.status,
+            errors: row.errors?.length ? row.errors : null,
+            result: row.result ?? null,
+            leadId: row.leadId ?? null,
+            applicationId: row.applicationId ?? null,
+          })),
+        });
+
+        await tx.uploadBatch.update({
+          where: { id: batch.id },
+          data: {
+            ...summary,
+            completedAt: new Date(),
+          },
+        });
+
+        return { batchId: batch.id, summary, rows };
+      },
+    );
+
+    await audit(req, "UPLOAD", "UploadBatch", batchId, null, summary);
+    res.status(201).json({ batchId, ...summary, rows: processedRows });
+  }),
+);
+
+// Conflict queue: list and manual resolution.
+router.get(
+  "/upload/:batchId/conflicts",
+  asyncHandler(async (req, res) => {
+    const items = await prisma.uploadBatchRow.findMany({
+      where: { uploadBatchId: req.params.batchId, status: "CONFLICT" },
+      orderBy: { rowNumber: "asc" },
+      select: {
+        id: true,
+        rowNumber: true,
+        applicationId: true,
+        rawData: true,
+        normalizedData: true,
+        status: true,
+        errors: true,
+        leadId: true,
+        result: true,
+      },
     });
+    res.json({ items });
+  }),
+);
+
+router.post(
+  "/upload/:batchId/conflicts/resolve",
+  requireRole("SUPER_ADMIN", "CIAC_ADMIN"),
+  asyncHandler(async (req, res) => {
+    const { applicationId, chosenLeadId } = req.body || {};
+    if (!applicationId || !chosenLeadId) {
+      return res.status(400).json({ message: "applicationId and chosenLeadId are required." });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const row = await tx.uploadBatchRow.findFirst({
+        where: { applicationId, uploadBatchId: req.params.batchId },
+      });
+      if (!row) throw new Error("Conflict row not found.");
+      if (row.status !== "CONFLICT") throw new Error("Row is not a conflict.");
+
+      const chosenLead = await tx.lead.findUnique({ where: { id: chosenLeadId } });
+      if (!chosenLead) throw new Error("Chosen lead not found.");
+
+      const before = row.result;
+
+      const updatedApplication = await tx.application.update({
+        where: { id: applicationId },
+        data: { leadId: chosenLeadId },
+      });
+
+      await tx.applicationStatusHistory.create({
+        data: {
+          applicationId: updatedApplication.id,
+          fromStatus: updatedApplication.applicationStatus,
+          toStatus: updatedApplication.applicationStatus,
+          changedById: req.user.id,
+          reason: "Manual conflict resolution",
+        },
+      });
+
+      const newResult = {
+        status: "matched",
+        reason: "MANUAL_REVIEW",
+        lead: chosenLead,
+      };
+
+      const updatedRow = await tx.uploadBatchRow.update({
+        where: { id: row.id },
+        data: {
+          status: "MATCHED",
+          leadId: chosenLeadId,
+          errors: null,
+          result: newResult,
+        },
+      });
+
+      await syncApplicationOutcomeRecords(updatedApplication.id, tx);
+
+      return { updatedRow, before, newResult };
+    });
+
+    // audit best-effort outside tx
+    await audit(req, "RESOLVE_CONFLICT", "UploadBatchRow", result.updatedRow.id, result.before, result.newResult);
+    res.json({ ok: true });
+  }),
+);
+
+router.post(
+  "/upload/:batchId/rollback",
+  requireRole("SUPER_ADMIN", "CIAC_ADMIN"),
+  asyncHandler(async (req, res) => {
+    const batchId = req.params.batchId;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.application.deleteMany({ where: { uploadBatchId: batchId } });
+      await tx.uploadBatchRow.deleteMany({ where: { uploadBatchId: batchId } });
+      await tx.uploadBatch.delete({ where: { id: batchId } });
+    });
+
+    await audit(req, "ROLLBACK_UPLOAD", "UploadBatch", batchId, null, { batchId });
+    res.json({ ok: true });
   }),
 );
 

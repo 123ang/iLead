@@ -17,6 +17,7 @@ const LOG_FILE = join(LOG_DIR, "postgres.log");
 const DATABASE_URL =
   process.env.DATABASE_URL ||
   `postgresql://ilead_user:password@127.0.0.1:${PORT}/ilead_db`;
+const ADMIN_URL = `postgresql://postgres@127.0.0.1:${PORT}/postgres`;
 
 function commandExists(command, args = ["--version"]) {
   const result = spawnSync(command, args, { stdio: "ignore" });
@@ -28,6 +29,14 @@ function run(command, args, options = {}) {
     stdio: "inherit",
     ...options,
   });
+}
+
+function capture(command, args, options = {}) {
+  return execFileSync(command, args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    ...options,
+  }).trim();
 }
 
 function usingDocker() {
@@ -93,21 +102,37 @@ function ensureLocalDb() {
   }
 
   run("psql", [
-    DATABASE_URL.replace("/ilead_db", "/postgres"),
+    ADMIN_URL,
     "-v",
     "ON_ERROR_STOP=1",
     "-c",
     "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ilead_user') THEN CREATE ROLE ilead_user LOGIN PASSWORD 'password'; ELSE ALTER ROLE ilead_user WITH LOGIN PASSWORD 'password'; END IF; END $$;",
   ]);
+  // `prisma migrate dev` creates a temporary “shadow” database; it needs CREATEDB.
   run("psql", [
-    DATABASE_URL.replace("/ilead_db", "/postgres"),
+    ADMIN_URL,
     "-v",
     "ON_ERROR_STOP=1",
     "-c",
-    "SELECT 'CREATE DATABASE ilead_db OWNER ilead_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'ilead_db')\\gexec",
+    "ALTER ROLE ilead_user WITH CREATEDB;",
   ]);
+  const dbExists = capture("psql", [
+    ADMIN_URL,
+    "-tAc",
+    "SELECT 1 FROM pg_database WHERE datname = 'ilead_db';",
+  ]);
+
+  if (dbExists !== "1") {
+    run("psql", [
+      ADMIN_URL,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      "CREATE DATABASE ilead_db OWNER ilead_user;",
+    ]);
+  }
   run("psql", [
-    DATABASE_URL,
+    ADMIN_URL,
     "-v",
     "ON_ERROR_STOP=1",
     "-c",

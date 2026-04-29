@@ -5,6 +5,9 @@ node_modules
 dist
 build
 coverage
+frontend/test-results/
+frontend/playwright-report/
+frontend/tests/e2e/tmp-*.csv
 .DS_Store
 *.log
 .tmp

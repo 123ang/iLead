@@ -4,17 +4,17 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@127.0.0.1:55432/ilead_db} nodemon src/server.js",
     "start": "node src/server.js",
     "build": "node --check src/server.js && find src -name '*.js' -maxdepth 5 -print0 | xargs -0 -n1 node --check",
     "lint": "node --check src/server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@localhost:55432/ilead_db} prisma validate",
-    "db:migrate": "prisma migrate dev",
-    "seed": "prisma db seed",
+    "prisma:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@127.0.0.1:55432/ilead_db} prisma generate",
+    "prisma:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@127.0.0.1:55432/ilead_db} prisma validate",
+    "db:migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@127.0.0.1:55432/ilead_db} prisma migrate deploy",
+    "seed": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@127.0.0.1:55432/ilead_db} prisma db seed",
     "test": "node --test",
     "test:smoke": "node scripts/smoke-api.mjs",
-    "metrics:refresh": "node scripts/refresh-campaign-metrics.mjs"
+    "metrics:refresh": "DATABASE_URL=${DATABASE_URL:-postgresql://ilead_user:password@127.0.0.1:55432/ilead_db} node scripts/refresh-campaign-metrics.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
@@ -27,8 +27,14 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.4"
   },
-  "devDependencies": { "nodemon": "^3.1.10", "prisma": "^6.7.0" },
-  "prisma": { "seed": "node prisma/seed.js" }
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "prisma": "^6.7.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
 }

@@ -149,6 +149,38 @@ router.get(
       })
       .filter(Boolean);
 
+    // Fan out unread overdue notifications to assigned staff (idempotent per lead link).
+    // This keeps the notifications local-first without needing a background cron.
+    const notificationType = "FOLLOW_UP_OVERDUE";
+    for (const item of items) {
+      const staffId = item.lead.assignedStaffId || item.lead.assignedStaff?.id;
+      if (!staffId) continue;
+
+      const link = `/leads/${item.lead.id}`;
+      const exists = await prisma.notification.findFirst({
+        where: {
+          userId: staffId,
+          type: notificationType,
+          link,
+          isRead: false,
+        },
+        select: { id: true },
+      });
+      if (exists) continue;
+
+      await prisma.notification.create({
+        data: {
+          userId: staffId,
+          title: "Follow-up overdue",
+          message: `${item.lead.fullName} has an overdue follow-up (${item.reason}).${
+            item.deadline ? ` Deadline: ${new Date(item.deadline).toLocaleString()}` : ""
+          }`,
+          type: notificationType,
+          link,
+        },
+      });
+    }
+
     await audit(req, "VIEW_OVERDUE", "Lead", null, null, { count: items.length });
     res.json(items);
   }),

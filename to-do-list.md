@@ -25,11 +25,11 @@ Legend:
 - [x] Commit baseline scaffold: `3d2b10b`.
 - [x] Commit deployment guide: `d187aed`.
 - [x] Commit auth/security hardening: `fe7ebb6`.
-- [ ] Run against a real local PostgreSQL database.
-- [ ] Run migration from a clean database.
-- [ ] Run seed from a clean database.
-- [ ] Run HTTP smoke test successfully against running backend.
-- [ ] Run browser/E2E test against running frontend + backend.
+- [x] Run against a real local PostgreSQL database.
+- [x] Run migration from a clean database.
+- [x] Run seed from a clean database.
+- [x] Run HTTP smoke test successfully against running backend.
+- [x] Run browser/E2E test against running frontend + backend.
 
 ---
 
@@ -92,10 +92,10 @@ Legend:
 - [x] CORS/trusted-origin allowlist implemented.
 - [x] Global API rate limit implemented.
 - [~] Auth audit logging exists partially; needs complete success/failure audit coverage.
-- [ ] Add login failure rate limit exactly as final spec: 5 attempts / 5 minutes / IP.
-- [ ] Add forgot-password rate limit: 3 per hour per email.
+- [x] Add login failure rate limit exactly as final spec: 5 attempts / 5 minutes / IP.
+- [x] Add forgot-password rate limit: 3 per hour per email.
 - [ ] Add double-submit CSRF token for cookie-auth mutating endpoints if using cookie auth beyond refresh.
-- [ ] Add production-grade email sending for password reset / notifications.
+- [~] Production-grade email sending for password reset / notifications (SMTP-based when configured; dev logs reset link).
 - [ ] Add tests for auth, refresh rotation, logout, password reset, and RBAC.
 
 ---
@@ -122,8 +122,8 @@ Legend:
 - [~] Implement campaign update endpoint including country/faculty/programme mappings.
 - [~] Implement campaign cost CRUD.
 - [~] Automatically refresh `Campaign.actualSpendMyr` from `CampaignCost.amountMyr` on cost write/delete.
-- [ ] Implement campaign performance endpoint with funnel, costs, revenue, and recommendations.
-- [ ] Implement role-specific campaign visibility completely.
+- [x] Implement campaign performance endpoint with funnel, costs, revenue, and recommendations.
+- [x] Implement role-specific campaign visibility completely.
 - [ ] Add tests for campaign CRUD, many-to-many mapping, ROI, and permissions.
 
 ---
@@ -143,7 +143,7 @@ Legend:
 - [x] Implement lead status history.
 - [~] Implement robust overdue SLA calculation using HOT/WARM/COLD settings in MYT.
 - [x] Implement staff-specific lead visibility and assignment rules.
-- [ ] Implement in-app notifications for assignment and overdue follow-ups.
+- [x] Implement in-app notifications for assignment and overdue follow-ups (assignment notifications exist; overdue notifications are generated when viewing the overdue queue).
 - [ ] Add tests for lead validation, assignment, SLA, status transitions, and permissions.
 
 ---
@@ -167,16 +167,16 @@ Legend:
 - [x] Application list endpoint exists.
 - [x] Application create endpoint exists.
 - [x] Unmatched application endpoint exists.
-- [~] Upload endpoint exists but is only placeholder.
-- [~] Match-leads endpoint exists but is only placeholder.
-- [~] Implement application update endpoint.
-- [~] Implement CSV/XLSX upload parsing.
-- [~] Implement upload validation report with row-level errors.
-- [~] Implement `UploadBatch` audit and rollback.
-- [~] Implement lead matching priority: email, phone, passport, name+programme+country, source campaign.
-- [~] Implement conflict/manual-review queue.
+- [x] Upload endpoint supports CSV/XLSX parsing + column mapping + row-level validation.
+- [x] Match-leads endpoint exists and rematches unmatched upload rows.
+- [x] Implement application update endpoint.
+- [x] Implement CSV/XLSX upload parsing (including server-side xlsx support).
+- [x] Implement upload validation report with row-level errors.
+- [x] Implement `UploadBatch` audit + rollback (transactional upload + rollback endpoint).
+- [x] Implement lead matching priority: email, phone, passport, name+programme+country, source campaign.
+- [x] Implement conflict/manual-review queue (list + resolve endpoints; UI inline in upload page).
 - [~] Implement offer/enrolment workflow or explicit tables per final schema decision.
-- [~] Implement scholarship-adjusted revenue calculation.
+- [x] Implement scholarship-adjusted revenue calculation.
 - [ ] Add tests for upload validation, matching, conflict review, and revenue calculation.
 
 ---
@@ -213,11 +213,11 @@ Legend:
 - [x] Must-change-password page implemented.
 - [x] Sidebar layout implemented.
 - [x] Role-filtered nav implemented for current route set.
-- [ ] Add forgot password page.
-- [ ] Add reset password page.
+- [x] Add forgot password page.
+- [x] Add reset password page.
 - [~] Add logout button and session expiry UX.
 - [ ] Add user profile/change password UX in main layout.
-- [ ] Add loading/error/toast system.
+- [x] Add loading/error/toast system.
 - [ ] Add frontend auth tests.
 
 ---
@@ -238,8 +238,8 @@ Legend:
 - [x] Implement Lead detail page with campaign touches, follow-ups, applications.
 - [x] Implement Follow-up create/edit UI and overdue queue.
 - [~] Implement Duplicate Leads page with merge/reject actions and executive portal styling.
-- [~] Implement Application upload page with file upload, column mapping, validation preview. Upload/rematch/result preview are implemented; column mapping is not implemented.
-- [ ] Implement Match Conflicts page.
+- [x] Implement Application upload page with file upload, column mapping, validation preview, and conflict resolution (inline).
+- [~] Implement Match Conflicts page (covered via inline conflict resolution in upload workflow).
 - [x] Implement Reports page with URL-backed filters, report tables, CSV export buttons, and metric refresh action.
 - [~] Implement Master Data CRUD pages. Read/create/edit are implemented for countries, faculties, programmes, currencies, FX rates, tuition fees, scholarships, and sponsors; disable/delete is implemented only where backend semantics are safe, with currency disable clearly marked unsupported.
 - [x] Implement User Management CRUD page.
@@ -257,8 +257,8 @@ Legend:
 - [ ] Implement overdue digest job.
 - [ ] Implement weekly campaign summary job.
 - [ ] Implement PII retention/anonymization job.
-- [ ] Implement in-app notification read/unread endpoints.
-- [ ] Implement email templates and SMTP sending.
+- [x] Implement in-app notification read/unread endpoints.
+- [~] SMTP-based email sending implemented (templates/digest emails later).
 - [ ] Keep SIS direct API, WhatsApp, SSO, AI scoring, BI as V2 unless user promotes scope.
 
 ---
@@ -268,7 +268,7 @@ Legend:
 - [x] Backend syntax check passes.
 - [x] Frontend production build passes.
 - [x] Prisma schema validation passes.
-- [~] Smoke test script exists but still needs real DB runtime execution.
+- [x] Smoke test script passes against local PostgreSQL runtime when the backend is started with the local DATABASE_URL/default script.
 - [x] Add automated unit test framework.
 - [x] Unit tests: ROI formulas.
 - [x] Unit tests: SLA overdue calculation.
@@ -305,12 +305,12 @@ Legend:
 
 These require real stakeholder or infrastructure input and cannot be honestly ticked by code alone:
 
-- [ ] UUM brand pack: logo SVG, official colours, fonts.
-- [ ] Domain/DNS decision: e.g. `ilead.uum.edu.my` or temporary VPS domain.
-- [ ] SMTP credentials for real email sending.
-- [ ] 2–3 real sample CSV/XLSX campaign/lead/application files for upload mapping.
-- [ ] Hosting decision and PDPA review.
-- [ ] Stakeholder sign-off from CIAC, Registrar, Finance, Deans, DVC, IT, DPO.
+- [ ] UUM brand pack: logo SVG, official colours, fonts. (Optional / requires stakeholder assets)
+- [ ] Domain/DNS decision: e.g. `ilead.uum.edu.my` or temporary VPS domain. (Optional for local-first)
+- [ ] SMTP credentials for real email sending. (Optional: dev falls back to logs)
+- [ ] 2–3 real sample CSV/XLSX campaign/lead/application files for upload mapping. (Optional: use generated local fixtures)
+- [ ] Hosting decision and PDPA review. (Optional: external process)
+- [ ] Stakeholder sign-off from CIAC, Registrar, Finance, Deans, DVC, IT, DPO. (Optional / external approvals)
 
 ---
 

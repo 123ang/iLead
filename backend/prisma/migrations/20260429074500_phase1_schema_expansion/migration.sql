@@ -52,6 +52,11 @@ CREATE TYPE "LeadSource" AS ENUM (
   'AGENT_REFERRAL',
   'OTHER'
 );
+-- During enum replacement, PostgreSQL will try to cast existing column defaults.
+-- If the old enum labels don't match the new enum, the cast can fail.
+-- So we drop defaults first, then restore the desired default(s).
+ALTER TABLE "Lead" ALTER COLUMN "source" DROP DEFAULT;
+ALTER TABLE "LeadCampaignTouch" ALTER COLUMN "source" DROP DEFAULT;
 ALTER TABLE "Lead"
   ALTER COLUMN "source" TYPE "LeadSource"
   USING CASE
@@ -67,6 +72,7 @@ ALTER TABLE "LeadCampaignTouch"
     WHEN "source"::text = 'REFERRAL' THEN 'OTHER'::"LeadSource"
     ELSE "source"::text::"LeadSource"
   END;
+ALTER TABLE "LeadCampaignTouch" ALTER COLUMN "source" SET DEFAULT 'EVENT_FORM';
 DROP TYPE "LeadSource_old";
 
 -- Auth and operational fields
@@ -235,7 +241,9 @@ CREATE TABLE IF NOT EXISTS "UploadBatchRow" (
 );
 
 -- Lead merge candidate and notification alignment
+ALTER TABLE "LeadMergeCandidate" ALTER COLUMN "status" DROP DEFAULT;
 ALTER TABLE "LeadMergeCandidate" ALTER COLUMN "status" TYPE "MergeStatus" USING "status"::text::"MergeStatus";
+ALTER TABLE "LeadMergeCandidate" ALTER COLUMN "status" SET DEFAULT 'PENDING';
 ALTER TABLE "LeadMergeCandidate" ADD COLUMN IF NOT EXISTS "reviewedBy" TEXT;
 ALTER TABLE "LeadMergeCandidate" ADD COLUMN IF NOT EXISTS "reviewedAt" TIMESTAMP(3);
 

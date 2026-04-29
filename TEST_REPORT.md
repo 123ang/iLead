@@ -14,6 +14,18 @@ npm test --workspace backend
 npm run build
 ```
 
+Latest local runtime verification on 2026-04-29:
+
+```bash
+npm run db:up
+npm run db:migrate
+npm run db:seed
+API_BASE=http://127.0.0.1:3103 ORIGIN=http://127.0.0.1:5174 npm run test:smoke --workspace backend
+E2E_BASE_URL=http://127.0.0.1:5174 npm run test:e2e --workspace frontend
+```
+
+Result: PASS with local PostgreSQL on port 55432, controlled backend on port 3103, and controlled frontend on port 5174.
+
 Required verification gate passed on 2026-04-29 after executive portal CRUD redesign:
 
 ```bash
@@ -78,10 +90,11 @@ npm run test:smoke
 - Prisma schema validation: PASS on 2026-04-29 after CRUD workflow completion.
 - Backend unit tests: PASS on 2026-04-29 after CRUD workflow completion, 28 tests passing.
 - Full backend/frontend build: PASS on 2026-04-29 after CRUD workflow completion. Vite still reports the existing chunk-size warning.
-- Local PostgreSQL runtime: BLOCKED BY SANDBOX
-- Migration against clean database: NOT VERIFIED
-- Seed against clean database: NOT VERIFIED
-- HTTP smoke test: NOT VERIFIED
+- Local PostgreSQL runtime: PASS on 2026-04-29 via `npm run db:up` local PostgreSQL fallback.
+- Migration against local database: PASS on 2026-04-29 via `npm run db:migrate`.
+- Seed against local database: PASS on 2026-04-29 via `npm run db:seed`.
+- HTTP smoke test: PASS on 2026-04-29 against controlled backend with local PostgreSQL.
+- Basic browser E2E upload flow: PASS on 2026-04-29 against controlled frontend/backend.
 - Route-level audit-log persistence for CSV exports: NOT VERIFIED against a live DB
 
 ## Frontend redesign verification notes
@@ -122,9 +135,8 @@ Additional coverage added on 2026-04-29:
 
 ## Remaining blockers
 
-- Real database verification requires one of:
-  - Docker available for `docker compose up`
-  - A host environment where PostgreSQL can allocate shared memory normally
 - Production cron/PM2 execution of the metric refresh script was documented but not verified on a host.
+- The currently running developer API on port 3003 may need restart if it was launched before the local DATABASE_URL script defaults were added; controlled backend verification on port 3103 passed.
+- Route-level audit-log persistence for CSV exports still needs a dedicated live-DB assertion.
 - Earlier sandboxed worker commit was blocked by `.git/index.lock`; the main agent can create local commits from the primary session.
 - Completion notification from the worker was blocked by OpenClaw runtime dependency staging; user-visible progress was handled in the main session instead.

@@ -15,7 +15,7 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-uum-navy/50 p-4">
-      <section className="w-full max-w-md rounded-md bg-white p-5 shadow-2xl">
+      <section className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl">
         <div className="flex gap-3">
           <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-red-50 text-red-700">
             <AlertTriangle className="h-5 w-5" />

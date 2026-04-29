@@ -19,7 +19,7 @@ export function PageHeader({ eyebrow, title, description, actions }) {
 
 export function Toolbar({ children }) {
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center">
       {children}
     </div>
   );
