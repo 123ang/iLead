@@ -3,7 +3,7 @@
 ## Required environment
 
 - `NODE_ENV=production`
-- `PORT=3003`
+- `PORT=4016`
 - `DATABASE_URL=postgresql://...`
 - `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` set to long random values
 - `FRONTEND_URL=https://<production-domain>`

@@ -103,43 +103,9 @@ if (!process.env.DATABASE_URL) {
 
 **Severity:** Medium / High for deployment  
 **Area:** Deployment  
-**Status:** Open
+**Status:** Resolved
 
-`deploy.sh` uses:
-
-```bash
-BACKEND_PORT="4016"
-```
-
-and health-checks:
-
-```bash
-curl -fsS "http://127.0.0.1:${BACKEND_PORT}/health"
-```
-
-But other project config/docs use port `3003`:
-
-- `backend/.env.example` → `PORT=3003`
-- `PRODUCTION_CHECKLIST.md` → `PORT=3003`
-- `ecosystem.config.cjs` → `PORT: "3003"`
-
-Risk:
-
-- Deployment can succeed but health check fails.
-- PM2 may start the API on 3003 while `deploy.sh` checks 4016.
-- Or the intended production port is 4016 but the app is not explicitly started with that port.
-
-Recommendation:
-
-Choose one production port and make these consistent:
-
-- `deploy.sh`
-- `ecosystem.config.cjs`
-- `.env` / `.env.example`
-- Nginx config
-- production checklist/deploy docs
-
-If production should use 4016, update PM2 env and docs. If it should use 3003, update `deploy.sh` health check.
+Backend port **`4016`** is aligned across `deploy.sh` (`BACKEND_PORT`), `ecosystem.config.cjs`, `backend/.env.example`, `backend/src/config/env.js` default, `deploy/nginx/ilead.conf`, `deploy.md`, and related docs. Production `backend/.env` and live Nginx `proxy_pass` must still use the same `PORT`.
 
 ---
 

@@ -6,7 +6,7 @@ Assumption:
 
 - VPS OS: Ubuntu 22.04 or 24.04
 - Domain example: `ilead.yourdomain.com`
-- Backend runs on port `3003`
+- Backend runs on port `4016`
 - Frontend is built as static files and served by Nginx
 - Database: PostgreSQL on the same VPS
 
@@ -188,7 +188,7 @@ Use this as a beginner-friendly production example:
 
 ```env
 DATABASE_URL="postgresql://ilead_user:DB_PASSWORD@localhost:5432/ilead_db"
-PORT=3003
+PORT=4016
 NODE_ENV="production"
 FRONTEND_URL="https://YOUR_DOMAIN"
 TIMEZONE="Asia/Kuala_Lumpur"
@@ -293,7 +293,7 @@ pm2 logs ilead-api
 Test locally on the VPS:
 
 ```bash
-curl http://localhost:3003/health
+curl http://localhost:4016/health
 ```
 
 You should see something like:
@@ -325,7 +325,7 @@ server {
     client_max_body_size 20M;
 
     location /api/ {
-        proxy_pass http://127.0.0.1:3003/api/;
+        proxy_pass http://127.0.0.1:4016/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -334,7 +334,7 @@ server {
     }
 
     location /health {
-        proxy_pass http://127.0.0.1:3003/health;
+        proxy_pass http://127.0.0.1:4016/health;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
     }
@@ -550,7 +550,7 @@ Check backend:
 
 ```bash
 pm2 logs ilead-api
-curl http://localhost:3003/health
+curl http://localhost:4016/health
 ```
 
 Check Nginx:
@@ -625,7 +625,7 @@ Browser
 Nginx
   |-- serves frontend from /var/www/ilead/frontend/dist
   |
-  |-- /api/* proxies to Node backend on localhost:3003
+  |-- /api/* proxies to Node backend on localhost:4016
 
 Node backend
   |
