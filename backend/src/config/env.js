@@ -27,7 +27,7 @@ const refreshExpiresMs = expiresSpecToMs(process.env.REFRESH_TOKEN_EXPIRES_IN ||
 const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
 
 export const env = {
-  port: Number(process.env.PORT || 3003),
+  port: Number(process.env.PORT || 4016),
   nodeEnv: process.env.NODE_ENV || "development",
 
   frontendUrl: frontend,

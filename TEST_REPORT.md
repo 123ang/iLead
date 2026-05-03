@@ -136,7 +136,7 @@ Additional coverage added on 2026-04-29:
 ## Remaining blockers
 
 - Production cron/PM2 execution of the metric refresh script was documented but not verified on a host.
-- The currently running developer API on port 3003 may need restart if it was launched before the local DATABASE_URL script defaults were added; controlled backend verification on port 3103 passed.
+- The currently running developer API on port 4016 may need restart if it was launched before the local DATABASE_URL script defaults were added; controlled backend verification on port 3103 passed.
 - Route-level audit-log persistence for CSV exports still needs a dedicated live-DB assertion.
 - Earlier sandboxed worker commit was blocked by `.git/index.lock`; the main agent can create local commits from the primary session.
 - Completion notification from the worker was blocked by OpenClaw runtime dependency staging; user-visible progress was handled in the main session instead.

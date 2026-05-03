@@ -5,19 +5,18 @@ This guide explains how to deploy iLead on a fresh Ubuntu VPS, step by step.
 Assumption:
 
 - VPS OS: Ubuntu 22.04 or 24.04
-- Domain example: `ilead.suntzutechnologies.com`
-- Frontend dev server runs on port `3016`
-- Backend API runs on port `4016`
+- Domain example: `ilead.yourdomain.com`
+- Backend runs on port `4016`
 - Frontend is built as static files and served by Nginx
 - Database: PostgreSQL on the same VPS
 
 Replace these placeholders with your real values:
 
 ```text
-YOUR_DOMAIN       = ilead.suntzutechnologies.com
+YOUR_DOMAIN       = ilead.yourdomain.com
 YOUR_VPS_IP       = 1.2.3.4
 YOUR_SERVER_USER  = deploy
-APP_DIR           = /root/projects/ilead
+APP_DIR           = /var/www/ilead
 DB_NAME           = ilead_db
 DB_USER           = ilead_user
 DB_PASSWORD       = choose_a_strong_password
@@ -38,7 +37,7 @@ Value: YOUR_VPS_IP
 Wait a few minutes, then test from your computer:
 
 ```bash
-ping ilead.suntzutechnologies.com
+ping YOUR_DOMAIN
 ```
 
 If it shows your VPS IP, DNS is ready.
@@ -122,7 +121,7 @@ Run these SQL commands. Change the password.
 
 ```sql
 CREATE DATABASE ilead_db;
-CREATE USER ilead_user WITH ENCRYPTED PASSWORD '5792_Ang';
+CREATE USER ilead_user WITH ENCRYPTED PASSWORD 'DB_PASSWORD';
 GRANT ALL PRIVILEGES ON DATABASE ilead_db TO ilead_user;
 ALTER DATABASE ilead_db OWNER TO ilead_user;
 \q
@@ -149,10 +148,11 @@ If you enter PostgreSQL successfully, type:
 On the VPS:
 
 ```bash
-sudo mkdir -p /root/projects
-cd /root/projects
+sudo mkdir -p /var/www
+sudo chown deploy:deploy /var/www
+cd /var/www
 git clone YOUR_REPO_URL ilead
-cd /root/projects/ilead
+cd ilead
 ```
 
 ### Option B — If the code is only on your Mac
@@ -162,14 +162,14 @@ From your Mac, run:
 ```bash
 rsync -av --exclude node_modules --exclude .git \
   /Users/123ang/Desktop/Websites/iLead/ \
-  root@YOUR_VPS_IP:/root/projects/ilead/
+  deploy@YOUR_VPS_IP:/var/www/ilead/
 ```
 
 Then SSH into the VPS:
 
 ```bash
-ssh root@YOUR_VPS_IP
-cd /root/projects/ilead
+ssh deploy@YOUR_VPS_IP
+cd /var/www/ilead
 ```
 
 ---
@@ -179,7 +179,7 @@ cd /root/projects/ilead
 Create backend environment file:
 
 ```bash
-cd /root/projects/ilead
+cd /var/www/ilead
 cp backend/.env.example backend/.env
 nano backend/.env
 ```
@@ -190,11 +190,11 @@ Use this as a beginner-friendly production example:
 DATABASE_URL="postgresql://ilead_user:DB_PASSWORD@localhost:5432/ilead_db"
 PORT=4016
 NODE_ENV="production"
-FRONTEND_URL="https://ilead.suntzutechnologies.com"
+FRONTEND_URL="https://YOUR_DOMAIN"
 TIMEZONE="Asia/Kuala_Lumpur"
 
-JWT_ACCESS_SECRET="j9ilXOtVqizVs6FOZkTE9JU+ieFGsZQyy3YAo7syQbIOE8WhwJthQnQYrQh7kv9I"
-JWT_REFRESH_SECRET="juQtjJ/jPWZy9IaY8C7Q1WRTe42CRvNH5q0OBc4iH1Ix6XeutGNaSLzi01+JFXdO"
+JWT_ACCESS_SECRET="replace_with_a_long_random_secret"
+JWT_REFRESH_SECRET="replace_with_another_long_random_secret"
 ACCESS_TOKEN_EXPIRES_IN="15m"
 REFRESH_TOKEN_EXPIRES_IN="7d"
 ```
@@ -216,8 +216,7 @@ nano frontend/.env
 Use:
 
 ```env
-VITE_API_BASE_URL="https://ilead.suntzutechnologies.com/api"
-VITE_PORT=3016
+VITE_API_BASE_URL="https://YOUR_DOMAIN/api"
 VITE_APP_TIMEZONE="Asia/Kuala_Lumpur"
 VITE_APP_NAME="iLead"
 ```
@@ -228,7 +227,7 @@ Important: frontend `.env` is read during build time. If you change it later, ru
 
 ## 8. Install dependencies
 
-From `/root/projects/ilead`:
+From `/var/www/ilead`:
 
 ```bash
 npm install
@@ -259,7 +258,7 @@ Only use `npx prisma db push` for quick local experiments. For VPS/production, p
 
 ## 10. Build the app
 
-From `/root/projects/ilead`:
+From `/var/www/ilead`:
 
 ```bash
 npm run build
@@ -274,7 +273,7 @@ This builds:
 
 ## 11. Start backend with PM2
 
-From `/root/projects/ilead`:
+From `/var/www/ilead`:
 
 ```bash
 pm2 start backend/src/server.js --name ilead-api
@@ -313,14 +312,14 @@ Create a new Nginx config:
 sudo nano /etc/nginx/sites-available/ilead
 ```
 
-Paste this config:
+Paste this. Replace `YOUR_DOMAIN`.
 
 ```nginx
 server {
     listen 80;
-    server_name ilead.suntzutechnologies.com;
+    server_name YOUR_DOMAIN;
 
-    root /root/projects/ilead/frontend/dist;
+    root /var/www/ilead/frontend/dist;
     index index.html;
 
     client_max_body_size 20M;
@@ -373,7 +372,7 @@ sudo systemctl reload nginx
 Open in browser:
 
 ```text
-http://ilead.suntzutechnologies.com
+http://YOUR_DOMAIN
 ```
 
 ---
@@ -389,7 +388,7 @@ sudo apt install -y certbot python3-certbot-nginx
 Request SSL certificate:
 
 ```bash
-sudo certbot --nginx -d ilead.suntzutechnologies.com
+sudo certbot --nginx -d YOUR_DOMAIN
 ```
 
 Follow the questions. Choose redirect HTTP to HTTPS when asked.
@@ -403,7 +402,7 @@ sudo certbot renew --dry-run
 Now open:
 
 ```text
-https://ilead.suntzutechnologies.com
+https://YOUR_DOMAIN
 ```
 
 ---
@@ -471,7 +470,7 @@ sudo tail -f /var/log/nginx/error.log
 Check backend health:
 
 ```bash
-curl https://ilead.suntzutechnologies.com/health
+curl https://YOUR_DOMAIN/health
 ```
 
 ---
@@ -481,7 +480,7 @@ curl https://ilead.suntzutechnologies.com/health
 ### If using Git
 
 ```bash
-cd /root/projects/ilead
+cd /var/www/ilead
 git pull
 npm install
 npm run prisma:generate
@@ -500,13 +499,13 @@ From Mac:
 ```bash
 rsync -av --exclude node_modules --exclude .git \
   /Users/123ang/Desktop/Websites/iLead/ \
-  root@YOUR_VPS_IP:/root/projects/ilead/
+  deploy@YOUR_VPS_IP:/var/www/ilead/
 ```
 
 Then on VPS:
 
 ```bash
-cd /root/projects/ilead
+cd /var/www/ilead
 npm install
 npm run prisma:generate
 cd backend
@@ -566,7 +565,7 @@ sudo tail -f /var/log/nginx/error.log
 Check that seed ran:
 
 ```bash
-cd /root/projects/ilead/backend
+cd /var/www/ilead/backend
 npm run seed
 ```
 
@@ -624,7 +623,7 @@ Browser
   | HTTPS
   v
 Nginx
-  |-- serves frontend from /root/projects/ilead/frontend/dist
+  |-- serves frontend from /var/www/ilead/frontend/dist
   |
   |-- /api/* proxies to Node backend on localhost:4016
 

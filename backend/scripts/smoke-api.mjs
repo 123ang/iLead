@@ -2,12 +2,12 @@
 /**
  * HTTP smoke test — run this while the API is up (e.g. `npm run start` in another terminal).
  *
- *   API_BASE=http://127.0.0.1:3003 ORIGIN=http://localhost:5173 node scripts/smoke-api.mjs
+ *   API_BASE=http://127.0.0.1:4016 ORIGIN=http://localhost:5173 node scripts/smoke-api.mjs
  *
  * Default login (after `npm run seed`): admin@ilead.local / iLead2026!
  */
 
-const BASE = (process.env.API_BASE || "http://127.0.0.1:3003").replace(/\/$/, "");
+const BASE = (process.env.API_BASE || "http://127.0.0.1:4016").replace(/\/$/, "");
 const ORIGIN = process.env.ORIGIN || "http://localhost:5173";
 const EMAIL = process.env.TEST_EMAIL || "admin@ilead.local";
 const PASSWORD = process.env.TEST_PASSWORD || "iLead2026!";

@@ -1,0 +1,2 @@
+applicantName,email,phone,passportNumber,country,programmeCode,studyLevel,applicationStatus,applicationDate,offerDate,enrolmentDate,sourceCampaign,scholarshipMyr,tuitionRevenueMyr
+Sample Applicant,sample@example.com,,,,,BACHELOR,APPLIED,2026-04-29,,,,0,0
