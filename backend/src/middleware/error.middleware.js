@@ -29,7 +29,10 @@ export function errorHandler(err, req, res, _next) {
   if (status >= 500) console.error(err);
   else if (env.nodeEnv !== "production") console.error(err);
 
-  const payload = { error: err.message || "Internal server error" };
+  const isServerError = status >= 500;
+  const payload = {
+    error: isServerError ? "Internal server error" : err.message || "Request failed",
+  };
   if (isZodError(err)) {
     payload.error = "Validation failed";
     payload.details = err.issues;
@@ -40,7 +43,9 @@ export function errorHandler(err, req, res, _next) {
     err.details != null;
 
   if (includeDetails) payload.details = err.details;
-  if (env.nodeEnv !== "production" && err.stack && status >= 400) payload.stack = err.stack;
+  if (env.nodeEnv === "development" && err.stack && status >= 400) {
+    payload.stack = err.stack;
+  }
 
   res.status(status).json(payload);
 }

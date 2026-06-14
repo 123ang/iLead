@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   isGlobalDashboardRole,
+  scopedApplicationWhere,
   scopedCampaignWhere,
   scopedLeadWhere,
 } from "../src/services/dashboard-scope.service.js";
@@ -36,5 +37,21 @@ test("scopedCampaignWhere limits staff campaigns to assigned-lead touches", () =
     leadTouches: {
       some: { lead: { deletedAt: null, assignedStaffId: "staff-1" } },
     },
+  });
+});
+
+test("scopedApplicationWhere limits staff applications through assigned leads", () => {
+  assert.deepEqual(scopedApplicationWhere({ role: "STAFF", id: "staff-1" }), {
+    deletedAt: null,
+    lead: {
+      deletedAt: null,
+      assignedStaffId: "staff-1",
+    },
+  });
+});
+
+test("scopedApplicationWhere leaves global roles at tenant-wide visibility", () => {
+  assert.deepEqual(scopedApplicationWhere({ role: "CIAC_ADMIN" }), {
+    deletedAt: null,
   });
 });

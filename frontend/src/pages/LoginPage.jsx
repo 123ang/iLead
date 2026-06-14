@@ -4,8 +4,8 @@ import { useAuthStore } from "../store/auth.store.js";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@ilead.local");
-  const [password, setPassword] = useState("iLead2026!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const setSession = useAuthStore((s) => s.setSession);
   const nav = useNavigate();

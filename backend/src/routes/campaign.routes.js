@@ -12,6 +12,7 @@ import { audit } from "../utils/audit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { scopedCampaignWhere } from "../services/dashboard-scope.service.js";
 import { refreshCampaignActualSpend } from "../services/campaign-cost.service.js";
+import { parsePagination } from "../utils/pagination.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -19,13 +20,12 @@ router.use(requireAuth);
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const page = Number(req.query.page || 1);
-    const pageSize = Number(req.query.pageSize || 50);
+    const { page, pageSize, skip } = parsePagination(req.query);
     const where = scopedCampaignWhere(req.user);
     const [items, total] = await Promise.all([
       prisma.campaign.findMany({
         where,
-        skip: (page - 1) * pageSize,
+        skip,
         take: pageSize,
         include: {
           countries: { include: { country: true } },

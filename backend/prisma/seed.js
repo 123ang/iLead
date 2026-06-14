@@ -1,5 +1,8 @@
-import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import {
+  generateTemporaryPassword,
+  hashPassword,
+} from "../src/utils/password.js";
 
 const prisma = new PrismaClient();
 
@@ -262,7 +265,6 @@ async function seedMasterData() {
 }
 
 async function seedUsers({ facultyMap }) {
-  const passwordHash = await bcrypt.hash("iLead2026!", 12);
   const rows = [
     ["SUPER_ADMIN", "Admin", "admin@ilead.local", null],
     ["MANAGEMENT", "Management One", "management1@ilead.local", null],
@@ -286,19 +288,29 @@ async function seedUsers({ facultyMap }) {
   ];
 
   const users = [];
+  const generatedCredentials = [];
   for (const [role, name, email, facultyId] of rows) {
-    users.push(
-      await prisma.user.create({
-        data: {
-          role,
-          name,
-          email,
-          facultyId,
-          passwordHash,
-        },
-      }),
-    );
+    const temporaryPassword = generateTemporaryPassword();
+    const user = await prisma.user.create({
+      data: {
+        role,
+        name,
+        email,
+        facultyId,
+        passwordHash: await hashPassword(temporaryPassword),
+        mustChangePassword: true,
+      },
+    });
+
+    users.push(user);
+    generatedCredentials.push({ role, email, temporaryPassword });
   }
+
+  if (generatedCredentials.length > 0) {
+    console.info("Seeded user temporary passwords. Store these securely; they are not recoverable later.");
+    console.table(generatedCredentials);
+  }
+
   return users;
 }
 

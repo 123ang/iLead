@@ -21,6 +21,7 @@ import {
   leadHasIdentifier,
   normalizeLeadIdentifiers,
 } from "../services/lead-identity.service.js";
+import { parsePagination } from "../utils/pagination.js";
 
 const router = Router();
 const duplicateRoles = [
@@ -95,13 +96,12 @@ router.get(
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const page = Number(req.query.page || 1);
-    const pageSize = Number(req.query.pageSize || 50);
+    const { page, pageSize, skip } = parsePagination(req.query);
     const where = scopedLeadWhere(req.user);
     const [items, total] = await Promise.all([
       prisma.lead.findMany({
         where,
-        skip: (page - 1) * pageSize,
+        skip,
         take: pageSize,
         include: {
           country: true,

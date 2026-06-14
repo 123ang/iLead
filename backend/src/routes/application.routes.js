@@ -11,10 +11,10 @@ import { audit } from "../utils/audit.js";
 import { syncApplicationOutcomeRecords } from "../services/application-outcome.service.js";
 import { matchApplicationToLead } from "../services/application-matching.service.js";
 import {
+  APPLICATION_UPLOAD_FILE_LIMIT_BYTES,
   assertUploadType,
   buildUploadBatchSummary,
   parseCsvBuffer,
-  parseXlsxBuffer,
 } from "../services/upload.service.js";
 import {
   normalizeEmail,
@@ -22,9 +22,39 @@ import {
   normalizePhone,
 } from "../services/lead-identity.service.js";
 import { requireRole } from "../middleware/role.middleware.js";
+import { scopedApplicationWhere } from "../services/dashboard-scope.service.js";
+import { AppError } from "../utils/http.js";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const applicationManagerRoles = [
+  "SUPER_ADMIN",
+  "MANAGEMENT",
+  "CIAC_ADMIN",
+  "REGISTRAR",
+];
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: APPLICATION_UPLOAD_FILE_LIMIT_BYTES,
+    files: 1,
+  },
+  fileFilter(_req, file, callback) {
+    const originalName = String(file.originalname || "").toLowerCase();
+    const isCsvName = originalName.endsWith(".csv");
+    const allowedMimeTypes = new Set([
+      "text/csv",
+      "application/csv",
+      "application/vnd.ms-excel",
+      "text/plain",
+      "application/octet-stream",
+    ]);
+    if (isCsvName && allowedMimeTypes.has(String(file.mimetype || ""))) {
+      callback(null, true);
+      return;
+    }
+    callback(new AppError(400, "Only CSV uploads are supported."));
+  },
+});
 router.use(requireAuth);
 
 async function buildReferenceMaps() {
@@ -108,9 +138,10 @@ function applyColumnMapping(rowData, columnMapping) {
 
 router.get(
   "/",
-  asyncHandler(async (_req, res) =>
+  asyncHandler(async (req, res) =>
     res.json(
       await prisma.application.findMany({
+        where: scopedApplicationWhere(req.user),
         take: 100,
         include: {
           lead: true,
@@ -128,6 +159,7 @@ router.get(
 
 router.post(
   "/",
+  requireRole(...applicationManagerRoles),
   asyncHandler(async (req, res) => {
     const data = applicationCreateSchema.parse(req.body);
     const created = await prisma.application.create({
@@ -155,11 +187,19 @@ router.post(
 
 router.patch(
   "/:id",
+  requireRole(...applicationManagerRoles),
   asyncHandler(async (req, res) => {
     const data = applicationUpdateSchema.parse(req.body);
-    const current = await prisma.application.findUnique({ where: { id: req.params.id } });
+    const current = await prisma.application.findFirst({
+      where: {
+        id: req.params.id,
+        ...scopedApplicationWhere(req.user),
+      },
+    });
+    if (!current) throw new AppError(404, "Application not found");
+
     const updated = await prisma.application.update({
-      where: { id: req.params.id },
+      where: { id: current.id },
       data: {
         ...data,
         email:
@@ -194,6 +234,7 @@ router.patch(
 
 router.post(
   "/upload",
+  requireRole(...applicationManagerRoles),
   upload.single("file"),
   asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -202,14 +243,7 @@ router.post(
 
     assertUploadType("APPLICATIONS");
     const originalName = String(req.file.originalname || "");
-    const ext = originalName.includes(".")
-      ? originalName.split(".").pop().toLowerCase()
-      : "";
-
-    const parsedRows =
-      ext === "xlsx" || ext === "xls"
-        ? parseXlsxBuffer(req.file.buffer)
-        : parseCsvBuffer(req.file.buffer);
+    const parsedRows = parseCsvBuffer(req.file.buffer);
 
     // columnMapping is optional JSON string from the client.
     let columnMapping = null;
@@ -324,6 +358,7 @@ router.post(
 // Conflict queue: list and manual resolution.
 router.get(
   "/upload/:batchId/conflicts",
+  requireRole(...applicationManagerRoles),
   asyncHandler(async (req, res) => {
     const items = await prisma.uploadBatchRow.findMany({
       where: { uploadBatchId: req.params.batchId, status: "CONFLICT" },
@@ -426,10 +461,12 @@ router.post(
 
 router.post(
   "/match-leads",
+  requireRole(...applicationManagerRoles),
   asyncHandler(async (req, res) => {
     const batchId = req.body?.batchId || null;
     const applications = await prisma.application.findMany({
       where: {
+        ...scopedApplicationWhere(req.user),
         deletedAt: null,
         leadId: null,
         uploadBatchId: batchId ?? undefined,
@@ -477,10 +514,14 @@ router.post(
 
 router.get(
   "/unmatched",
-  asyncHandler(async (_req, res) =>
+  asyncHandler(async (req, res) =>
     res.json(
       await prisma.application.findMany({
-        where: { leadId: null, deletedAt: null },
+        where: {
+          ...scopedApplicationWhere(req.user),
+          leadId: null,
+          deletedAt: null,
+        },
         include: { uploadBatch: true },
       }),
     ),

@@ -69,7 +69,11 @@ export async function rotateRefreshToken(plainIncoming) {
   if (!row?.user) throw new AppError(401, "Refresh token invalid");
 
   const { user } = row;
-  if (user.deletedAt || !user.isActive || row.revokedAt)
+  if (row.revokedAt) {
+    await revokeAllRefresh(user.id);
+    throw new AppError(401, "Refresh token invalid");
+  }
+  if (user.deletedAt || !user.isActive)
     throw new AppError(401, "Refresh token invalid");
 
   const now = new Date();

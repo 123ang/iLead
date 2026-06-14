@@ -1,5 +1,9 @@
 import { UploadStatus, UploadType } from "@prisma/client";
-import * as XLSX from "xlsx";
+import { AppError } from "../utils/http.js";
+
+export const MAX_UPLOAD_ROWS = 5000;
+export const MAX_UPLOAD_COLUMNS = 100;
+export const APPLICATION_UPLOAD_FILE_LIMIT_BYTES = 5 * 1024 * 1024;
 
 function splitCsvLine(line) {
   const values = [];
@@ -29,44 +33,35 @@ function splitCsvLine(line) {
   return values.map((value) => value.trim());
 }
 
-export function parseCsvBuffer(buffer) {
+export function parseCsvBuffer(
+  buffer,
+  { maxRows = MAX_UPLOAD_ROWS, maxColumns = MAX_UPLOAD_COLUMNS } = {},
+) {
   const text = buffer.toString("utf8").replace(/^\uFEFF/, "");
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
   if (lines.length < 2) return [];
 
   const headers = splitCsvLine(lines[0]);
+  if (headers.length > maxColumns) {
+    throw new AppError(400, `CSV upload exceeds the ${maxColumns} column limit.`);
+  }
+  if (lines.length - 1 > maxRows) {
+    throw new AppError(400, `CSV upload exceeds the ${maxRows} row limit.`);
+  }
+
   return lines.slice(1).map((line, index) => {
     const cells = splitCsvLine(line);
+    if (cells.length > maxColumns) {
+      throw new AppError(
+        400,
+        `CSV row ${index + 2} exceeds the ${maxColumns} column limit.`,
+      );
+    }
     const row = {};
     headers.forEach((header, i) => {
       row[header] = cells[i] ?? "";
     });
     return { rowNumber: index + 2, data: row };
-  });
-}
-
-export function parseXlsxBuffer(buffer) {
-  // Reads the first worksheet and converts it into the same header→row format as CSV parsing.
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames?.[0];
-  if (!sheetName) return [];
-
-  const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
-  if (!Array.isArray(rows) || rows.length < 2) return [];
-
-  const headers = rows[0]
-    .map((h) => String(h ?? "").trim())
-    .filter((h) => h.length > 0);
-
-  if (headers.length === 0) return [];
-
-  return rows.slice(1).map((cells, idx) => {
-    const rowData = {};
-    headers.forEach((header, i) => {
-      rowData[header] = cells?.[i] ?? "";
-    });
-    return { rowNumber: idx + 2, data: rowData };
   });
 }
 
@@ -93,4 +88,3 @@ export function assertUploadType(value) {
   }
   return value;
 }
-

@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildUploadBatchSummary, parseCsvBuffer } from "../src/services/upload.service.js";
+import {
+  buildUploadBatchSummary,
+  parseCsvBuffer,
+} from "../src/services/upload.service.js";
 
 test("parseCsvBuffer parses headers and quoted values", () => {
   const rows = parseCsvBuffer(
@@ -23,3 +26,20 @@ test("buildUploadBatchSummary counts successes and failures", () => {
   assert.equal(summary.failedRows, 1);
 });
 
+test("parseCsvBuffer rejects too many rows", () => {
+  const csv = Buffer.from("applicantName\nA\nB\nC\n");
+
+  assert.throws(
+    () => parseCsvBuffer(csv, { maxRows: 2 }),
+    /row limit/,
+  );
+});
+
+test("parseCsvBuffer rejects too many columns", () => {
+  const csv = Buffer.from("a,b,c\n1,2,3\n");
+
+  assert.throws(
+    () => parseCsvBuffer(csv, { maxColumns: 2 }),
+    /column limit/,
+  );
+});

@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const e2eAdminEmail = process.env.E2E_ADMIN_EMAIL;
+const e2eAdminPassword = process.env.E2E_ADMIN_PASSWORD;
 
 function toCsvRow(values) {
   return values
@@ -20,11 +22,16 @@ function toCsvRow(values) {
 
 test.describe("Upload + matching (local E2E)", () => {
   test("login -> upload applications CSV -> see report -> campaign ROI loads", async ({ page }) => {
+    test.skip(
+      !e2eAdminEmail || !e2eAdminPassword,
+      "Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run this local flow.",
+    );
+
     test.setTimeout(120_000);
     // 1) Login via UI (avoid relying on token capture for API calls in the test).
     await page.goto("/login");
-    await page.locator('input[type="email"]').fill("admin@ilead.local");
-    await page.locator('input[type="password"]').fill("iLead2026!");
+    await page.locator('input[type="email"]').fill(e2eAdminEmail);
+    await page.locator('input[type="password"]').fill(e2eAdminPassword);
     await page.locator('button[type="submit"]').click();
 
     // Wait until authenticated navigation finishes.
@@ -78,7 +85,7 @@ test.describe("Upload + matching (local E2E)", () => {
 
     // 4) Upload via UI (use SPA navigation to preserve in-memory auth store).
     await page.getByRole("link", { name: "Applications" }).click();
-    await expect(page.getByText("Upload CSV / XLSX")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("Upload CSV")).toBeVisible({ timeout: 60_000 });
     const fileInput = page.locator('input[type="file"]');
     await expect(fileInput).toBeVisible({ timeout: 60_000 });
     await fileInput.setInputFiles(csvPath);
@@ -118,4 +125,3 @@ test.describe("Upload + matching (local E2E)", () => {
     await expect(page.getByText("ROI", { exact: true })).toBeVisible({ timeout: 60_000 });
   });
 });
-

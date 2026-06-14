@@ -17,6 +17,10 @@ import { errorHandler, notFound } from "./middleware/error.middleware.js";
 
 export const app = express();
 
+if (env.nodeEnv === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
@@ -27,7 +31,7 @@ app.use(
   cors({
     credentials: true,
     origin(origin, callback) {
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, env.nodeEnv !== "production");
       const ok = env.trustedOrigins.includes(origin);
       return callback(null, ok);
     },
@@ -60,7 +64,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api", miscRoutes);
 
 app.get("/health", (_req, res) =>
-  res.json({ ok: true, service: "ilead-api", env: env.nodeEnv }),
+  res.json({ ok: true, service: "ilead-api" }),
 );
 app.use(notFound);
 app.use(errorHandler);

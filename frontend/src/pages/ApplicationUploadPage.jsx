@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Card } from "../components/ui/Card.jsx";
 import { Button } from "../components/ui/Button.jsx";
@@ -61,7 +60,6 @@ const EXPECTED_FIELDS = [
 
 export default function ApplicationUploadPage() {
   const [file, setFile] = useState(null);
-  const [fileType, setFileType] = useState(null); // 'csv' | 'xlsx'
   const [headers, setHeaders] = useState([]);
   const [columnMapping, setColumnMapping] = useState({});
 
@@ -97,20 +95,8 @@ export default function ApplicationUploadPage() {
   async function hydrateHeaders(chosenFile) {
     if (!chosenFile) return;
     const name = String(chosenFile.name || "").toLowerCase();
-    const isXlsx = name.endsWith(".xlsx") || name.endsWith(".xls");
-
-    if (isXlsx) {
-      const buf = await chosenFile.arrayBuffer();
-      const workbook = XLSX.read(buf, { type: "array" });
-      const firstSheet = workbook.SheetNames?.[0];
-      if (!firstSheet) throw new Error("No sheets found in xlsx.");
-      const ws = workbook.Sheets[firstSheet];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
-      const hdrs = rows?.[0]?.map((h) => String(h ?? "").trim()).filter((h) => h.length > 0) ?? [];
-      setHeaders(hdrs);
-      setColumnMapping(guessMapping(hdrs));
-      setFileType("xlsx");
-      return;
+    if (!name.endsWith(".csv")) {
+      throw new Error("Only CSV uploads are supported.");
     }
 
     // CSV header parsing
@@ -119,7 +105,6 @@ export default function ApplicationUploadPage() {
     const hdrs = splitCsvLine(firstLine).filter((h) => h.length > 0);
     setHeaders(hdrs);
     setColumnMapping(guessMapping(hdrs));
-    setFileType("csv");
   }
 
   const upload = useMutation({
@@ -189,11 +174,11 @@ export default function ApplicationUploadPage() {
       <PageHeader
         eyebrow="Application Operations"
         title="Application Upload"
-        description="Upload application CSV/XLSX files, review row-level validation + matching outcomes, and resolve conflicts manually."
+        description="Upload application CSV files, review row-level validation + matching outcomes, and resolve conflicts manually."
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.85fr,1.15fr]">
-        <Card title="Upload CSV / XLSX">
+        <Card title="Upload CSV">
           <form
             className="grid gap-3"
             onSubmit={(event) => {
@@ -205,7 +190,7 @@ export default function ApplicationUploadPage() {
             <input
               className="field-control"
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,text/csv"
               onChange={async (event) => {
                 const f = event.target.files?.[0] || null;
                 setFile(f);
